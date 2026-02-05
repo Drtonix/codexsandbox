@@ -79,17 +79,63 @@ struct WaveScreen: View {
                             bodyContext.rotate(by: .radians(body.angle))
                             switch body.shape {
                             case .cube:
+                                if body.isSticky {
+                                    bodyContext.fill(
+                                        squarePath,
+                                        with: .color(Color.yellow.opacity(0.18))
+                                    )
+                                } else if body.isSlippery {
+                                    bodyContext.fill(
+                                        squarePath,
+                                        with: .color(Color.cyan.opacity(0.18))
+                                    )
+                                } else if body.isBouncy {
+                                    bodyContext.fill(
+                                        squarePath,
+                                        with: .color(Color.green.opacity(0.18))
+                                    )
+                                }
                                 bodyContext.stroke(
                                     squarePath,
                                     with: .color(wave.accentColor),
                                     style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round)
                                 )
+                                if body.isSelected {
+                                    bodyContext.stroke(
+                                        squarePath,
+                                        with: .color(wave.selectionColor.opacity(0.7)),
+                                        style: StrokeStyle(lineWidth: 4.5, lineCap: .round, lineJoin: .round, dash: [6, 4])
+                                    )
+                                }
                             case .circle:
+                                if body.isSticky {
+                                    bodyContext.fill(
+                                        circlePath,
+                                        with: .color(Color.yellow.opacity(0.18))
+                                    )
+                                } else if body.isSlippery {
+                                    bodyContext.fill(
+                                        circlePath,
+                                        with: .color(Color.cyan.opacity(0.18))
+                                    )
+                                } else if body.isBouncy {
+                                    bodyContext.fill(
+                                        circlePath,
+                                        with: .color(Color.green.opacity(0.18))
+                                    )
+                                }
                                 bodyContext.stroke(
                                     circlePath,
                                     with: .color(wave.accentColor),
                                     style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round)
                                 )
+                                if body.isSelected {
+                                    bodyContext.stroke(
+                                        circlePath,
+                                        with: .color(wave.selectionColor.opacity(0.7)),
+                                        style: StrokeStyle(lineWidth: 4.5, lineCap: .round, lineJoin: .round, dash: [6, 4])
+                                    )
+                                }
                             case .polygon:
                                 if let vertices = body.localVertices, vertices.count > 1 {
                                     var polygonPath = Path()
@@ -98,11 +144,34 @@ struct WaveScreen: View {
                                         polygonPath.addLine(to: vertex)
                                     }
                                     polygonPath.closeSubpath()
+                                    if body.isSticky {
+                                        bodyContext.fill(
+                                            polygonPath,
+                                            with: .color(Color.yellow.opacity(0.18))
+                                        )
+                                    } else if body.isSlippery {
+                                        bodyContext.fill(
+                                            polygonPath,
+                                            with: .color(Color.cyan.opacity(0.18))
+                                        )
+                                    } else if body.isBouncy {
+                                        bodyContext.fill(
+                                            polygonPath,
+                                            with: .color(Color.green.opacity(0.18))
+                                        )
+                                    }
                                     bodyContext.stroke(
                                         polygonPath,
                                         with: .color(wave.accentColor),
                                         style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round)
                                     )
+                                    if body.isSelected {
+                                        bodyContext.stroke(
+                                            polygonPath,
+                                            with: .color(wave.selectionColor.opacity(0.7)),
+                                            style: StrokeStyle(lineWidth: 4.5, lineCap: .round, lineJoin: .round, dash: [6, 4])
+                                        )
+                                    }
                                 }
                             }
 
@@ -120,6 +189,7 @@ struct WaveScreen: View {
                                     with: .color(wave.accentColor)
                                 )
                             }
+
                         }
 
                         for chunk in waterChunks {
@@ -157,6 +227,16 @@ struct WaveScreen: View {
                                 Path(ellipseIn: rect),
                                 with: .color(wave.accentColor.opacity(min(1, chunk.opacity + 0.18))),
                                 style: StrokeStyle(lineWidth: max(0.5, chunk.radius * 0.22))
+                            )
+                        }
+
+                        if let selectionRect = wave.selectionRect {
+                            var selectionPath = Path()
+                            selectionPath.addRect(selectionRect)
+                            context.stroke(
+                                selectionPath,
+                                with: .color(wave.selectionColor.opacity(0.7)),
+                                style: StrokeStyle(lineWidth: 1.4, dash: [6, 4])
                             )
                         }
 
@@ -316,7 +396,8 @@ struct FloatingControlPanel: View {
     @State private var dragMoved = false
 
     private let expandedSize = CGSize(width: 360, height: 620)
-    private let collapsedSize = CGSize(width: 142, height: 36)
+    private let collapsedSize = CGSize(width: 360, height: 36)
+    private let expandedWidthRange: ClosedRange<CGFloat> = 300...380
     private let handleHeight: CGFloat = 36
     private let margin: CGFloat = 10
 
@@ -325,7 +406,8 @@ struct FloatingControlPanel: View {
     }
 
     private var currentSize: CGSize {
-        isCollapsed ? collapsedSize : expandedSize
+        let width = min(max(expandedSize.width, expandedWidthRange.lowerBound), expandedWidthRange.upperBound)
+        return CGSize(width: width, height: isCollapsed ? collapsedSize.height : expandedSize.height)
     }
 
     var body: some View {
@@ -365,16 +447,22 @@ struct FloatingControlPanel: View {
                 .font(.caption.bold())
         }
         .padding(.horizontal, 10)
-        .frame(width: collapsedSize.width, height: collapsedSize.height)
+        .frame(width: currentSize.width, height: collapsedSize.height)
         .background(wave.panelBackgroundColor)
         .foregroundStyle(wave.accentColor)
         .clipShape(Capsule())
         .overlay(Capsule().stroke(wave.accentColor.opacity(0.2), lineWidth: 1))
         .gesture(
-            dragGesture(for: collapsedSize) {
-                center = recentered(center, from: collapsedSize, to: expandedSize, anchorX: 1, anchorY: 0)
+            dragGesture(for: CGSize(width: currentSize.width, height: collapsedSize.height)) {
+                let expandedCenter = recentered(
+                    center,
+                    from: CGSize(width: currentSize.width, height: collapsedSize.height),
+                    to: CGSize(width: currentSize.width, height: expandedSize.height),
+                    anchorX: 0,
+                    anchorY: 0
+                )
+                center = clamped(expandedCenter, for: CGSize(width: currentSize.width, height: expandedSize.height))
                 isCollapsed = false
-                center = clamped(center, for: expandedSize)
             }
         )
     }
@@ -387,9 +475,15 @@ struct FloatingControlPanel: View {
                     .font(.caption2.weight(.semibold))
                 Spacer()
                 Button {
-                    center = recentered(center, from: expandedSize, to: collapsedSize, anchorX: 1, anchorY: 0)
+                    let collapsedCenter = recentered(
+                        center,
+                        from: expandedSize,
+                        to: collapsedSize,
+                        anchorX: 0,
+                        anchorY: 0
+                    )
+                    center = clamped(collapsedCenter, for: collapsedSize)
                     isCollapsed = true
-                    center = clamped(center, for: collapsedSize)
                 } label: {
                     Image(systemName: "chevron.up")
                         .font(.caption2.weight(.semibold))
@@ -397,7 +491,7 @@ struct FloatingControlPanel: View {
                 .buttonStyle(.plain)
             }
             .padding(.horizontal, 10)
-            .frame(width: expandedSize.width, height: handleHeight)
+            .frame(width: currentSize.width, height: handleHeight)
             .background(wave.panelBackgroundColor)
             .foregroundStyle(wave.accentColor.opacity(0.9))
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -406,9 +500,9 @@ struct FloatingControlPanel: View {
                     .stroke(wave.accentColor.opacity(0.2), lineWidth: 1)
             )
             .contentShape(Rectangle())
-            .gesture(dragGesture(for: expandedSize))
+            .gesture(dragGesture(for: currentSize))
 
-            WaveControlsPanel(wave: wave, height: expandedSize.height - handleHeight - 6)
+            WaveControlsPanel(wave: wave, height: expandedSize.height - handleHeight - 6, width: currentSize.width)
         }
     }
 
@@ -491,21 +585,28 @@ struct FloatingControlPanel: View {
 struct WaveControlsPanel: View {
     @ObservedObject var wave: WaveModel
     var height: CGFloat = 580
+    var width: CGFloat = 360
 
     private func tr(_ ru: String, _ en: String) -> String {
         wave.language == .ru ? ru : en
     }
 
+    private func labeled(_ base: String, key: String) -> String {
+        "\(base) (\(key))"
+    }
+
     private func drawingToolLabel(_ tool: WaveModel.DrawingTool) -> String {
         switch tool {
         case .none:
-            return tr("Нет", "Off")
+            return labeled(tr("Нет", "Off"), key: "1")
         case .quadrilateral:
-            return tr("4-угольник", "Quad")
+            return labeled(tr("4-угольник", "Quad"), key: "R")
         case .ellipse:
-            return tr("Окружность", "Circle")
+            return labeled(tr("Окружность", "Circle"), key: "T")
+        case .triangle:
+            return labeled(tr("Треугольник", "Triangle"), key: "Y")
         case .freeform:
-            return tr("Фигура", "Shape")
+            return labeled(tr("Рисунок", "Drawing"), key: "U")
         }
     }
 
@@ -516,6 +617,53 @@ struct WaveControlsPanel: View {
         case .land:
             return tr("Суша", "Land")
         }
+    }
+
+    private func drawingToolButton(_ tool: WaveModel.DrawingTool) -> some View {
+        let isActive = wave.drawingTool == tool
+        return Button(drawingToolLabel(tool)) {
+            wave.toggleDrawingTool(tool)
+        }
+        .buttonStyle(.plain)
+        .controlSize(.small)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(isActive ? Color.accentColor : wave.panelBackgroundColor)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(isActive ? Color.accentColor : wave.accentColor.opacity(0.35), lineWidth: 1)
+        )
+        .foregroundStyle(isActive ? Color.white : wave.accentColor)
+        .lineLimit(2)
+        .multilineTextAlignment(.center)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity)
+        .minimumScaleFactor(0.8)
+    }
+
+    private func panelButton(_ title: String, isActive: Bool = false, action: @escaping () -> Void) -> some View {
+        Button(title, action: action)
+            .buttonStyle(.plain)
+            .controlSize(.small)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(isActive ? wave.accentColor : wave.panelBackgroundColor)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(isActive ? wave.accentColor : wave.accentColor.opacity(0.35), lineWidth: 1)
+            )
+            .foregroundStyle(isActive ? wave.backgroundColor : wave.accentColor)
+            .lineLimit(2)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity)
+            .minimumScaleFactor(0.8)
     }
 
     var body: some View {
@@ -529,89 +677,113 @@ struct WaveControlsPanel: View {
                     Text("FPS \(Int(wave.fps.rounded()))")
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(wave.accentColor.opacity(0.7))
-                    Button(tr("Сброс", "Reset")) {
+                    panelButton(tr("Сброс", "Reset"), isActive: true) {
                         wave.resetAll()
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
-                    .tint(wave.accentColor)
-                    .foregroundStyle(wave.backgroundColor)
                 }
 
-                HStack(spacing: 8) {
-                    Button(tr("Сброс Сцены", "Reset Scene")) {
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: 120), spacing: 8, alignment: .leading)],
+                    alignment: .leading,
+                    spacing: 8
+                ) {
+                    panelButton(tr("Сброс Сцены", "Reset Scene")) {
                         wave.resetScene()
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .tint(wave.accentColor)
-                    .foregroundStyle(wave.accentColor)
-
-                    Button(tr("Куб", "Cube")) {
+                    panelButton(labeled(tr("Куб", "Cube"), key: "Q")) {
                         wave.addCube()
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
-                    .tint(wave.accentColor)
-                    .foregroundStyle(wave.backgroundColor)
-
-                    Button(tr("Шар", "Ball")) {
+                    panelButton(labeled(tr("Шар", "Ball"), key: "W")) {
                         wave.addCircle()
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .tint(wave.accentColor)
-                    .foregroundStyle(wave.accentColor)
+                    panelButton(labeled(tr("Треугольник", "Triangle"), key: "E")) {
+                        wave.addTriangle()
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                HStack(spacing: 8) {
-                    if wave.weldToolEnabled {
-                        Button(tr("Сварка: Вкл", "Weld: On")) {
-                            wave.toggleWeldTool()
+                VStack(alignment: .leading, spacing: 6) {
+                    LazyVGrid(
+                        columns: [GridItem(.adaptive(minimum: 120), spacing: 8, alignment: .leading)],
+                        alignment: .leading,
+                        spacing: 8
+                    ) {
+                        if wave.drawingTool == .none, !wave.weldToolEnabled, !wave.wheelToolEnabled, !wave.bounceToolEnabled, !wave.slipToolEnabled, !wave.stickyToolEnabled {
+                            panelButton(labeled(tr("Курсор: Вкл", "Cursor: On"), key: "1"), isActive: true) {
+                                wave.selectCursorTool()
+                            }
+                        } else {
+                            panelButton(labeled(tr("Курсор", "Cursor"), key: "1")) {
+                                wave.selectCursorTool()
+                            }
                         }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.small)
-                        .tint(wave.accentColor)
-                        .foregroundStyle(wave.backgroundColor)
-                    } else {
-                        Button(tr("Сварка", "Weld")) {
-                            wave.toggleWeldTool()
+
+                        if wave.weldToolEnabled {
+                            panelButton(labeled(tr("Сварка: Вкл", "Weld: On"), key: "2"), isActive: true) {
+                                wave.toggleWeldTool()
+                            }
+                        } else {
+                            panelButton(labeled(tr("Сварка", "Weld"), key: "2")) {
+                                wave.toggleWeldTool()
+                            }
                         }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        .tint(wave.accentColor)
-                        .foregroundStyle(wave.accentColor)
+
+                        if wave.wheelToolEnabled {
+                            panelButton(labeled(tr("Колесо: Вкл", "Wheel: On"), key: "3"), isActive: true) {
+                                wave.toggleWheelTool()
+                            }
+                        } else {
+                            panelButton(labeled(tr("Колесо", "Wheel"), key: "3")) {
+                                wave.toggleWheelTool()
+                            }
+                        }
+
+                        if wave.bounceToolEnabled {
+                            panelButton(labeled(tr("Прыгучесть: Вкл", "Bounce: On"), key: "4"), isActive: true) {
+                                wave.toggleBounceTool()
+                            }
+                        } else {
+                            panelButton(labeled(tr("Прыгучесть", "Bounce"), key: "4")) {
+                                wave.toggleBounceTool()
+                            }
+                        }
+
+                        if wave.slipToolEnabled {
+                            panelButton(labeled(tr("Скользкость: Вкл", "Slip: On"), key: "5"), isActive: true) {
+                                wave.toggleSlipTool()
+                            }
+                        } else {
+                            panelButton(labeled(tr("Скользкость", "Slip"), key: "5")) {
+                                wave.toggleSlipTool()
+                            }
+                        }
+
+                        if wave.stickyToolEnabled {
+                            panelButton(labeled(tr("Липкость: Вкл", "Sticky: On"), key: "6"), isActive: true) {
+                                wave.toggleStickyTool()
+                            }
+                        } else {
+                            panelButton(labeled(tr("Липкость", "Sticky"), key: "6")) {
+                                wave.toggleStickyTool()
+                            }
+                        }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                    if wave.wheelToolEnabled {
-                        Button(tr("Колесо: Вкл", "Wheel: On")) {
-                            wave.toggleWheelTool()
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.small)
-                        .tint(wave.accentColor)
-                        .foregroundStyle(wave.backgroundColor)
-                    } else {
-                        Button(tr("Колесо", "Wheel")) {
-                            wave.toggleWheelTool()
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        .tint(wave.accentColor)
-                        .foregroundStyle(wave.accentColor)
-                    }
-
-                    Spacer()
-                    Text(
-                        wave.weldToolEnabled || wave.wheelToolEnabled
-                            ? tr(
-                                "Инструмент: \(wave.weldToolEnabled ? "Сварка" : "Колесо")",
-                                "Tool: \(wave.weldToolEnabled ? "Weld" : "Wheel")"
-                            )
-                            : tr("Инструмент: Нет", "Tool: None")
-                    )
-                    .font(.caption2)
-                    .foregroundStyle(wave.accentColor.opacity(0.7))
+                    let toolText = wave.weldToolEnabled
+                        ? tr("Инструмент: Сварка", "Tool: Weld")
+                        : wave.wheelToolEnabled
+                            ? tr("Инструмент: Колесо", "Tool: Wheel")
+                            : wave.bounceToolEnabled
+                                ? tr("Инструмент: Прыгучесть", "Tool: Bounce")
+                                : wave.slipToolEnabled
+                                    ? tr("Инструмент: Скользкость", "Tool: Slip")
+                                    : wave.stickyToolEnabled
+                                        ? tr("Инструмент: Липкость", "Tool: Sticky")
+                                        : tr("Инструмент: Нет", "Tool: None")
+                    Text(toolText)
+                        .font(.caption2)
+                        .foregroundStyle(wave.accentColor.opacity(0.7))
                 }
 
                 Picker(tr("Локация", "Location"), selection: $wave.sceneLocation) {
@@ -621,35 +793,36 @@ struct WaveControlsPanel: View {
                 .pickerStyle(.segmented)
 
                 HStack {
-                    Text(tr("Рисование", "Drawing"))
-                        .font(.caption2)
-                        .foregroundStyle(wave.accentColor.opacity(0.85))
+                Text(labeled(tr("Произвольные Объекты", "Freeform Objects"), key: "R/T/Y/U"))
+                    .font(.caption2)
+                    .foregroundStyle(wave.accentColor.opacity(0.85))
                     Spacer()
                     Text(tr("Shift: Ровно", "Shift: Constrain"))
                         .font(.caption2)
                         .foregroundStyle(wave.accentColor.opacity(0.6))
                 }
 
-                Picker("", selection: $wave.drawingTool) {
-                    Text(drawingToolLabel(.none)).tag(WaveModel.DrawingTool.none)
-                    Text(drawingToolLabel(.quadrilateral)).tag(WaveModel.DrawingTool.quadrilateral)
-                    Text(drawingToolLabel(.ellipse)).tag(WaveModel.DrawingTool.ellipse)
-                    Text(drawingToolLabel(.freeform)).tag(WaveModel.DrawingTool.freeform)
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: 130), spacing: 6, alignment: .leading)],
+                    alignment: .leading,
+                    spacing: 6
+                ) {
+                    drawingToolButton(.none)
+                    drawingToolButton(.quadrilateral)
+                    drawingToolButton(.ellipse)
+                    drawingToolButton(.triangle)
+                    drawingToolButton(.freeform)
                 }
-                .pickerStyle(.segmented)
-                .labelsHidden()
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                Button(
+                panelButton(
                     wave.isTimeFrozen
-                        ? tr("Продолжить Время", "Resume Time")
-                        : tr("Заморозить Время", "Freeze Time")
+                        ? labeled(tr("Продолжить Время", "Resume Time"), key: "Space")
+                        : labeled(tr("Заморозить Время", "Freeze Time"), key: "Space"),
+                    isActive: wave.isTimeFrozen
                 ) {
                     wave.toggleTimeFrozen()
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .tint(wave.accentColor)
-                .foregroundStyle(wave.accentColor)
 
                 Picker(tr("Язык", "Language"), selection: $wave.language) {
                     Text("RU").tag(AppLanguage.ru)
@@ -657,12 +830,9 @@ struct WaveControlsPanel: View {
                 }
                 .pickerStyle(.segmented)
 
-                Button(tr("Сменить Цвета", "Toggle Colors")) {
+                panelButton(tr("Сменить Цвета", "Toggle Colors")) {
                     wave.toggleTheme()
                 }
-                .buttonStyle(.bordered)
-                .tint(wave.accentColor)
-                .foregroundStyle(wave.accentColor)
 
                 ControlSlider(
                     tr("Лимит FPS", "FPS Limit"),
@@ -670,6 +840,15 @@ struct WaveControlsPanel: View {
                     range: 20...480,
                     step: 1,
                     format: "%.0f",
+                    accentColor: wave.accentColor
+                )
+
+                ControlSlider(
+                    labeled(tr("Скорость Времени", "Time Scale"), key: "G/H"),
+                    value: $wave.timeScale,
+                    range: 0.2...2.5,
+                    step: 0.05,
+                    format: "%.2f",
                     accentColor: wave.accentColor
                 )
 
@@ -716,6 +895,7 @@ struct WaveControlsPanel: View {
                     ControlSlider(tr("Масса Объекта", "Object Mass"), value: $wave.squareMass, range: 0.2...20, step: 0.1, format: "%.1f", accentColor: wave.accentColor)
                     ControlSlider(tr("Инерция Объекта", "Object Inertia"), value: $wave.squareInertia, range: 500...30000, step: 50, format: "%.0f", accentColor: wave.accentColor)
                     ControlSlider(tr("Гравитация", "Gravity"), value: $wave.gravityForce, range: 0...2, step: 0.01, format: "%.2f", accentColor: wave.accentColor)
+                    ControlSlider(tr("Ускорение Падения", "Fall Acceleration"), value: $wave.fallAccelerationScale, range: 0.2...3, step: 0.05, format: "%.2f", accentColor: wave.accentColor)
                     ControlSlider(tr("Порог Контакта", "Contact Depth"), value: $wave.waterContactThreshold, range: 0...8, step: 0.05, format: "%.2f", accentColor: wave.accentColor)
                     ControlSlider(tr("Плавучесть База", "Buoyancy Base"), value: $wave.buoyancyBase, range: 0...0.2, step: 0.001, format: "%.3f", accentColor: wave.accentColor)
                     ControlSlider(tr("Плавучесть Множитель", "Buoyancy Scale"), value: $wave.buoyancyScale, range: 0...0.3, step: 0.001, format: "%.3f", accentColor: wave.accentColor)
@@ -757,7 +937,7 @@ struct WaveControlsPanel: View {
                     PanelSection(title: tr("Локация: Суша", "Location: Land"), color: wave.accentColor)
                     ControlSlider(tr("Высота Земли", "Ground Height"), value: $wave.landSurfaceLevel, range: 0.55...0.9, step: 0.01, format: "%.2f", accentColor: wave.accentColor)
                     ControlSlider(tr("Отскок От Суши", "Ground Bounce"), value: $wave.landBounce, range: 0...0.9, step: 0.01, format: "%.2f", accentColor: wave.accentColor)
-                    ControlSlider(tr("Трение На Суше", "Ground Friction"), value: $wave.landFriction, range: 0...1, step: 0.01, format: "%.2f", accentColor: wave.accentColor)
+                    ControlSlider(tr("Трение На Суше", "Ground Friction"), value: $wave.landFriction, range: 0...2.0, step: 0.01, format: "%.2f", accentColor: wave.accentColor)
                     ControlSlider(tr("Демпфер Вращения На Суше", "Ground Angular Damping"), value: $wave.landAngularDamping, range: 0...1, step: 0.01, format: "%.2f", accentColor: wave.accentColor)
                 }
 
@@ -768,28 +948,25 @@ struct WaveControlsPanel: View {
                         .foregroundStyle(wave.accentColor)
                         .font(.caption2)
                     ControlSlider(tr("Упругость Столкновений", "Collision Restitution"), value: $wave.collisionRestitution, range: 0...0.95, step: 0.01, format: "%.2f", accentColor: wave.accentColor)
-                    ControlSlider(tr("Трение Столкновений", "Collision Friction"), value: $wave.collisionFriction, range: 0...1.2, step: 0.01, format: "%.2f", accentColor: wave.accentColor)
+                    ControlSlider(tr("Трение Столкновений", "Collision Friction"), value: $wave.collisionFriction, range: 0...2.0, step: 0.01, format: "%.2f", accentColor: wave.accentColor)
+                    ControlSlider(tr("Прыгучесть", "Bouncy Restitution"), value: $wave.bouncyRestitution, range: 0...1.2, step: 0.01, format: "%.2f", accentColor: wave.accentColor)
                     ControlSlider(tr("Сила Импульса", "Impulse Scale"), value: $wave.collisionImpulseScale, range: 0...2, step: 0.01, format: "%.2f", accentColor: wave.accentColor)
                     ControlSlider(tr("Передача Вращения", "Angular Transfer"), value: $wave.collisionAngularTransfer, range: 0...2, step: 0.01, format: "%.2f", accentColor: wave.accentColor)
                     ControlSlider(tr("Коррекция Проникновения", "Penetration Correction"), value: $wave.collisionPositionCorrection, range: 0...1, step: 0.01, format: "%.2f", accentColor: wave.accentColor)
                     ControlSlider(tr("Допуск Проникновения", "Penetration Slop"), value: $wave.collisionSlop, range: 0...6, step: 0.05, format: "%.2f", accentColor: wave.accentColor)
-                    ControlSlider(tr("Итерации Решателя", "Solver Iterations"), value: $wave.collisionIterations, range: 1...10, step: 1, format: "%.0f", accentColor: wave.accentColor)
+                    ControlSlider(tr("Итерации Решателя", "Solver Iterations"), value: $wave.collisionIterations, range: 1...30, step: 1, format: "%.0f", accentColor: wave.accentColor)
                     ControlSlider(tr("Качество Коллизий", "Collision Quality"), value: $wave.collisionQuality, range: 0.2...1.0, step: 0.05, format: "%.2f", accentColor: wave.accentColor)
                 }
 
                 Group {
                     PanelSection(title: tr("Сварка Объектов", "Object Welding"), color: wave.accentColor)
-                    Toggle(tr("Режим Сварки", "Weld Mode"), isOn: $wave.weldToolEnabled)
+                    Toggle(labeled(tr("Режим Сварки", "Weld Mode"), key: "2"), isOn: $wave.weldToolEnabled)
                         .tint(wave.accentColor)
                         .foregroundStyle(wave.accentColor)
                         .font(.caption2)
-                    Button(tr("Очистить Сварки", "Clear Welds")) {
+                    panelButton(tr("Очистить Сварки", "Clear Welds")) {
                         wave.clearWelds()
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .tint(wave.accentColor)
-                    .foregroundStyle(wave.accentColor)
                     ControlSlider(tr("Жесткость Сварки", "Weld Stiffness"), value: $wave.weldLinearStiffness, range: 0...1, step: 0.01, format: "%.2f", accentColor: wave.accentColor)
                     ControlSlider(tr("Демпфер Сварки", "Weld Damping"), value: $wave.weldLinearDamping, range: 0...1, step: 0.01, format: "%.2f", accentColor: wave.accentColor)
                     ControlSlider(tr("Жесткость Поворота", "Weld Angular Stiff"), value: $wave.weldAngularStiffness, range: 0...1, step: 0.01, format: "%.2f", accentColor: wave.accentColor)
@@ -799,7 +976,7 @@ struct WaveControlsPanel: View {
 
                 Group {
                     PanelSection(title: tr("Режим Колеса", "Wheel Mode"), color: wave.accentColor)
-                    Toggle(tr("Режим Колеса", "Wheel Mode"), isOn: $wave.wheelToolEnabled)
+                    Toggle(labeled(tr("Режим Колеса", "Wheel Mode"), key: "3"), isOn: $wave.wheelToolEnabled)
                         .tint(wave.accentColor)
                         .foregroundStyle(wave.accentColor)
                         .font(.caption2)
@@ -811,23 +988,20 @@ struct WaveControlsPanel: View {
                     )
                     .font(.caption2)
                     .foregroundStyle(wave.accentColor.opacity(0.65))
-                    Button(tr("Очистить Колеса", "Clear Wheels")) {
+                    panelButton(tr("Очистить Колеса", "Clear Wheels")) {
                         wave.clearWheels()
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .tint(wave.accentColor)
-                    .foregroundStyle(wave.accentColor)
                 }
 
                 Group {
                     PanelSection(title: tr("Ограничения Объектов", "Object Limits"), color: wave.accentColor)
-                    ControlSlider(tr("Скорость Объекта X", "Object Speed X"), value: $wave.squareVelocityLimitX, range: 0.5...25, step: 0.1, format: "%.1f", accentColor: wave.accentColor)
-                    ControlSlider(tr("Скорость Объекта Y", "Object Speed Y"), value: $wave.squareVelocityLimitY, range: 0.5...25, step: 0.1, format: "%.1f", accentColor: wave.accentColor)
+                    ControlSlider(tr("Скорость Объекта X", "Object Speed X"), value: $wave.squareVelocityLimitX, range: 0.5...40, step: 0.1, format: "%.1f", accentColor: wave.accentColor)
+                    ControlSlider(tr("Скорость Объекта Y", "Object Speed Y"), value: $wave.squareVelocityLimitY, range: 0.5...40, step: 0.1, format: "%.1f", accentColor: wave.accentColor)
                     ControlSlider(tr("Угловая Скорость Объекта", "Object Angular Speed"), value: $wave.squareAngularLimit, range: 0.01...1, step: 0.005, format: "%.3f", accentColor: wave.accentColor)
                     ControlSlider(tr("Инерция Броска", "Throw Inertia"), value: $wave.dragThrowLinearInertia, range: 0...8, step: 0.05, format: "%.2f", accentColor: wave.accentColor)
                     ControlSlider(tr("Инерция Броска Вращение", "Throw Angular Inertia"), value: $wave.dragThrowAngularInertia, range: 0...8, step: 0.05, format: "%.2f", accentColor: wave.accentColor)
                     ControlSlider(tr("Лимит Броска Множитель", "Throw Clamp Scale"), value: $wave.dragThrowClampScale, range: 0.5...4, step: 0.05, format: "%.2f", accentColor: wave.accentColor)
+                    ControlSlider(tr("Ускорение Броска", "Throw Acceleration"), value: $wave.dragThrowAcceleration, range: 0...2.5, step: 0.05, format: "%.2f", accentColor: wave.accentColor)
                     ControlSlider(tr("Шаг Поворота Клавиш", "Keyboard Rotate Step"), value: $wave.keyboardRotateStepDegrees, range: 0.5...45, step: 0.5, format: "%.1f", accentColor: wave.accentColor)
                     ControlSlider(tr("Шаг Поворота Shift", "Shift Rotate Step"), value: $wave.keyboardRotateSnapDegrees, range: 1...90, step: 1, format: "%.0f", accentColor: wave.accentColor)
                     ControlSlider(tr("Отскок Стен X", "Wall Bounce X"), value: $wave.wallBounceX, range: 0...0.9, step: 0.01, format: "%.2f", accentColor: wave.accentColor)
@@ -837,7 +1011,7 @@ struct WaveControlsPanel: View {
             }
             .padding(12)
         }
-        .frame(width: 360, height: height)
+        .frame(width: width, height: height)
         .background(wave.panelBackgroundColor)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(
@@ -860,6 +1034,8 @@ struct PanelSection: View {
             .padding(.top, 6)
     }
 }
+
+// KeyHintOverlay removed: key bindings are now shown inline in labels.
 
 struct ControlSlider: View {
     let title: String
@@ -921,6 +1097,7 @@ final class WaveModel: ObservableObject {
         case none
         case quadrilateral
         case ellipse
+        case triangle
         case freeform
 
         var id: String { rawValue }
@@ -939,6 +1116,11 @@ final class WaveModel: ObservableObject {
         case polygon
     }
 
+    enum SpawnKind {
+        case cube
+        case circle
+    }
+
     struct BodyDrawState: Identifiable {
         let id: UUID
         let shape: BodyShape
@@ -946,6 +1128,10 @@ final class WaveModel: ObservableObject {
         let angle: CGFloat
         let localVertices: [CGPoint]?
         let isWheel: Bool
+        let isSelected: Bool
+        let isBouncy: Bool
+        let isSlippery: Bool
+        let isSticky: Bool
     }
 
     struct WaterChunkDrawState: Identifiable {
@@ -967,6 +1153,9 @@ final class WaveModel: ObservableObject {
         var localVertices: [CGPoint]?
         var collisionVertices: [CGPoint]?
         var collisionVertexCap: Int
+        var isBouncy: Bool
+        var isSlippery: Bool
+        var isSticky: Bool
     }
 
     private struct WaterChunk {
@@ -978,10 +1167,19 @@ final class WaveModel: ObservableObject {
         var life: CGFloat
     }
 
+    private struct DragSample {
+        let time: TimeInterval
+        let position: CGPoint
+    }
+
+    private struct ContactPoint {
+        var position: CGPoint
+        var penetration: CGFloat
+    }
+
     private struct CollisionManifold {
         var normal: CGVector
-        var penetration: CGFloat
-        var contactPoint: CGPoint
+        var contacts: [ContactPoint]
     }
 
     private struct WeldConstraint {
@@ -1016,6 +1214,7 @@ final class WaveModel: ObservableObject {
     private(set) var drawingPreviewPoints: [CGPoint] = []
     private(set) var drawingPreviewClosed: Bool = false
     private(set) var waterChunkDrawStates: [WaterChunkDrawState] = []
+    @Published private(set) var selectionRect: CGRect?
     @Published var sceneLocation: SceneLocation = .land {
         didSet {
             if sceneLocation == .land {
@@ -1056,7 +1255,10 @@ final class WaveModel: ObservableObject {
     @Published var pointerSuppressionMin: CGFloat = 0.18
     @Published var squareMass: CGFloat = 4.2
     @Published var squareInertia: CGFloat = 7600
-    @Published var gravityForce: CGFloat = 0.4
+    @Published var gravityForce: CGFloat = 0.6
+    @Published var fallAccelerationScale: CGFloat = 1.2
+    @Published var spawnKind: SpawnKind = .cube
+    @Published var primarySelectionID: UUID?
     @Published var waterContactThreshold: CGFloat = 0.1
     @Published var buoyancyBase: CGFloat = 0.018
     @Published var buoyancyScale: CGFloat = 0.03
@@ -1069,26 +1271,27 @@ final class WaveModel: ObservableObject {
     @Published var surfaceTargetImmersion: CGFloat = 0.2
     @Published var surfaceSpring: CGFloat = 0.018
     @Published var surfaceDamping: CGFloat = 0.07
-    @Published var squareVelocityLimitX: CGFloat = 6.8
-    @Published var squareVelocityLimitY: CGFloat = 7.8
+    @Published var squareVelocityLimitX: CGFloat = 10.0
+    @Published var squareVelocityLimitY: CGFloat = 18.0
     @Published var squareAngularLimit: CGFloat = 0.095
-    @Published var dragThrowLinearInertia: CGFloat = 2.35
-    @Published var dragThrowAngularInertia: CGFloat = 1.9
-    @Published var dragThrowClampScale: CGFloat = 1.8
+    @Published var dragThrowLinearInertia: CGFloat = 3.0
+    @Published var dragThrowAngularInertia: CGFloat = 2.2
+    @Published var dragThrowClampScale: CGFloat = 2.6
+    @Published var dragThrowAcceleration: CGFloat = 1.0
     @Published var keyboardRotateStepDegrees: CGFloat = 6.3
     @Published var keyboardRotateSnapDegrees: CGFloat = 15
     @Published var wallBounceX: CGFloat = 0.14
     @Published var wallBounceTop: CGFloat = 0.1
     @Published var wallBounceBottom: CGFloat = 0.09
     @Published var cubeCollisionEnabled: Bool = true
-    @Published var collisionRestitution: CGFloat = 0.18
-    @Published var collisionFriction: CGFloat = 0.42
+    @Published var collisionRestitution: CGFloat = 0.0
+    @Published var collisionFriction: CGFloat = 1.3
     @Published var collisionImpulseScale: CGFloat = 1.0
-    @Published var collisionAngularTransfer: CGFloat = 1.0
-    @Published var collisionPositionCorrection: CGFloat = 0.55
-    @Published var collisionSlop: CGFloat = 0.35
-    @Published var collisionIterations: CGFloat = 2
-    @Published var collisionQuality: CGFloat = 0.55 {
+    @Published var collisionAngularTransfer: CGFloat = 0.4
+    @Published var collisionPositionCorrection: CGFloat = 0.8
+    @Published var collisionSlop: CGFloat = 0.01
+    @Published var collisionIterations: CGFloat = 22
+    @Published var collisionQuality: CGFloat = 1.0 {
         didSet {
             let clamped = min(max(collisionQuality, 0.2), 1.0)
             if abs(clamped - collisionQuality) > 0.0001 {
@@ -1115,9 +1318,9 @@ final class WaveModel: ObservableObject {
     @Published var waterSprayOpacityScale: CGFloat = 0.62
     @Published var waterSprayTailScale: CGFloat = 1.6
     @Published var landSurfaceLevel: CGFloat = 0.72
-    @Published var landBounce: CGFloat = 0.03
-    @Published var landFriction: CGFloat = 0.92
-    @Published var landAngularDamping: CGFloat = 0.995
+    @Published var landBounce: CGFloat = 0.0
+    @Published var landFriction: CGFloat = 1.3
+    @Published var landAngularDamping: CGFloat = 0.99
     @Published var fpsLimit: CGFloat = 60 {
         didSet {
             let clamped = min(max(fpsLimit, 20), 480)
@@ -1128,6 +1331,14 @@ final class WaveModel: ObservableObject {
             rescheduleTimerIfNeeded()
         }
     }
+    @Published var timeScale: CGFloat = 1.0 {
+        didSet {
+            let clamped = min(max(timeScale, 0.2), 2.5)
+            if abs(clamped - timeScale) > 0.0001 {
+                timeScale = clamped
+            }
+        }
+    }
     @Published var isTimeFrozen: Bool = false
     @Published private(set) var fps: CGFloat = 0
     @Published var drawingTool: DrawingTool = .none {
@@ -1135,6 +1346,9 @@ final class WaveModel: ObservableObject {
             if drawingTool != .none {
                 weldToolEnabled = false
                 wheelToolEnabled = false
+                bounceToolEnabled = false
+                slipToolEnabled = false
+                stickyToolEnabled = false
             }
             clearDrawingState()
         }
@@ -1144,6 +1358,9 @@ final class WaveModel: ObservableObject {
             if weldToolEnabled {
                 drawingTool = .none
                 wheelToolEnabled = false
+                bounceToolEnabled = false
+                slipToolEnabled = false
+                stickyToolEnabled = false
             } else {
                 pendingWeldBodyID = nil
                 pendingWeldAnchorLocal = nil
@@ -1157,6 +1374,9 @@ final class WaveModel: ObservableObject {
             if wheelToolEnabled {
                 drawingTool = .none
                 weldToolEnabled = false
+                bounceToolEnabled = false
+                slipToolEnabled = false
+                stickyToolEnabled = false
             } else {
                 wheelCursorPoint = nil
             }
@@ -1167,6 +1387,40 @@ final class WaveModel: ObservableObject {
     @Published var weldAngularStiffness: CGFloat = 0.58
     @Published var weldAngularDamping: CGFloat = 0.26
     @Published var weldIterations: CGFloat = 2
+    @Published var bouncyRestitution: CGFloat = 0.85
+    @Published var bounceToolEnabled: Bool = false {
+        didSet {
+            if bounceToolEnabled {
+                drawingTool = .none
+                weldToolEnabled = false
+                wheelToolEnabled = false
+                slipToolEnabled = false
+                stickyToolEnabled = false
+            }
+        }
+    }
+    @Published var slipToolEnabled: Bool = false {
+        didSet {
+            if slipToolEnabled {
+                drawingTool = .none
+                weldToolEnabled = false
+                wheelToolEnabled = false
+                bounceToolEnabled = false
+                stickyToolEnabled = false
+            }
+        }
+    }
+    @Published var stickyToolEnabled: Bool = false {
+        didSet {
+            if stickyToolEnabled {
+                drawingTool = .none
+                weldToolEnabled = false
+                wheelToolEnabled = false
+                bounceToolEnabled = false
+                slipToolEnabled = false
+            }
+        }
+    }
 
     var accentColor: Color {
         theme == .dark ? .white : .black
@@ -1178,6 +1432,10 @@ final class WaveModel: ObservableObject {
 
     var panelBackgroundColor: Color {
         theme == .dark ? Color.black.opacity(0.72) : Color.white.opacity(0.84)
+    }
+
+    var selectionColor: Color {
+        Color.accentColor
     }
 
     var preferredRenderInterval: Double {
@@ -1196,6 +1454,7 @@ final class WaveModel: ObservableObject {
     let circleRadius: CGFloat = 28
 
     private let pointCount = 320
+    private let physicsStep: CGFloat = 1.0 / 60.0
     private var velocities: [CGFloat]
     private var timer: Timer?
     private var activity: CGFloat = 0
@@ -1210,16 +1469,24 @@ final class WaveModel: ObservableObject {
     private var lastDragTimestamp: TimeInterval?
     private var recentDragVelocity: CGVector = .zero
     private var recentDragAngularVelocity: CGFloat = 0
+    private var dragSamples: [DragSample] = []
     private var weldConstraints: [WeldConstraint] = []
     private var wheelBodies: Set<UUID> = []
     private var pendingWeldBodyID: UUID?
     private var pendingWeldAnchorLocal: CGPoint?
     private var bodyIndexByID: [UUID: Int] = [:]
     private var spawnedBodyHistory: [UUID] = []
+    private var selectedBodyIDs: Set<UUID> = []
+    private var selectionDragStart: CGPoint?
+    private var selectionDragActive = false
+    private var selectionMoveStart: CGPoint?
+    private var selectionMoveCenters: [UUID: CGPoint] = [:]
+    private var selectionMoveActive = false
     private var bodySplashCooldown: [UUID: CGFloat] = [:]
-    private var calmSkipToggle = false
+    private var throwCooldown: [UUID: Int] = [:]
     private var lastTickTimestamp: CFAbsoluteTime?
     private var tickInFlight = false
+    private var simulationAccumulator: CFAbsoluteTime = 0
     private var smoothedFPS: CGFloat = 0
     private var fpsSampleTime: CFAbsoluteTime = 0
     private var fpsSampleSum: CGFloat = 0
@@ -1244,7 +1511,10 @@ final class WaveModel: ObservableObject {
             angularVelocity: 0,
             localVertices: nil,
             collisionVertices: nil,
-            collisionVertexCap: 0
+            collisionVertexCap: 0,
+            isBouncy: false,
+            isSlippery: false,
+            isSticky: false
         )
         self.bodies = [firstBody]
         self.bodyDrawStates = [
@@ -1254,7 +1524,11 @@ final class WaveModel: ObservableObject {
                 center: firstBody.center,
                 angle: firstBody.angle,
                 localVertices: nil,
-                isWheel: false
+                isWheel: false,
+                isSelected: false,
+                isBouncy: false,
+                isSlippery: false,
+                isSticky: false
             )
         ]
         self.weldCursorPoint = nil
@@ -1274,6 +1548,7 @@ final class WaveModel: ObservableObject {
         timer = nil
         lastTickTimestamp = nil
         tickInFlight = false
+        simulationAccumulator = 0
         smoothedFPS = 0
         fpsSampleTime = 0
         fpsSampleSum = 0
@@ -1286,6 +1561,7 @@ final class WaveModel: ObservableObject {
         timer?.invalidate()
         lastTickTimestamp = nil
         tickInFlight = false
+        simulationAccumulator = 0
         smoothedFPS = 0
         fpsSampleTime = 0
         fpsSampleSum = 0
@@ -1353,7 +1629,8 @@ final class WaveModel: ObservableObject {
         pointerSuppressionMin = 0.18
         squareMass = 4.2
         squareInertia = 7600
-        gravityForce = 0.4
+        gravityForce = 0.6
+        fallAccelerationScale = 1.2
         waterContactThreshold = 0.1
         buoyancyBase = 0.018
         buoyancyScale = 0.03
@@ -1366,26 +1643,27 @@ final class WaveModel: ObservableObject {
         surfaceTargetImmersion = 0.2
         surfaceSpring = 0.018
         surfaceDamping = 0.07
-        squareVelocityLimitX = 6.8
-        squareVelocityLimitY = 7.8
+        squareVelocityLimitX = 10.0
+        squareVelocityLimitY = 18.0
         squareAngularLimit = 0.095
-        dragThrowLinearInertia = 2.35
-        dragThrowAngularInertia = 1.9
-        dragThrowClampScale = 1.8
+        dragThrowLinearInertia = 3.0
+        dragThrowAngularInertia = 2.2
+        dragThrowClampScale = 2.6
+        dragThrowAcceleration = 1.0
         keyboardRotateStepDegrees = 6.3
         keyboardRotateSnapDegrees = 15
         wallBounceX = 0.14
         wallBounceTop = 0.1
         wallBounceBottom = 0.09
         cubeCollisionEnabled = true
-        collisionRestitution = 0.18
-        collisionFriction = 0.42
+        collisionRestitution = 0.0
+        collisionFriction = 1.3
         collisionImpulseScale = 1.0
-        collisionAngularTransfer = 1.0
-        collisionPositionCorrection = 0.55
-        collisionSlop = 0.35
-        collisionIterations = 2
-        collisionQuality = 0.55
+        collisionAngularTransfer = 0.4
+        collisionPositionCorrection = 0.8
+        collisionSlop = 0.01
+        collisionIterations = 22
+        collisionQuality = 1.0
         waterSprayEnabled = true
         waterSprayMaxCount = 220
         waterSprayImpulseThreshold = 9.8
@@ -1403,15 +1681,17 @@ final class WaveModel: ObservableObject {
         waterSprayOpacityScale = 0.62
         waterSprayTailScale = 1.6
         landSurfaceLevel = 0.72
-        landBounce = 0.03
-        landFriction = 0.92
-        landAngularDamping = 0.995
+        landBounce = 0.0
+        landFriction = 1.3
+        landAngularDamping = 0.99
         fpsLimit = 60
+        timeScale = 1.0
         weldLinearStiffness = 0.74
         weldLinearDamping = 0.24
         weldAngularStiffness = 0.58
         weldAngularDamping = 0.26
         weldIterations = 2
+        bouncyRestitution = 0.85
     }
 
     func resetAll() {
@@ -1420,6 +1700,7 @@ final class WaveModel: ObservableObject {
         drawingTool = .none
         weldToolEnabled = false
         wheelToolEnabled = false
+        bounceToolEnabled = false
         resetScene()
     }
 
@@ -1447,6 +1728,90 @@ final class WaveModel: ObservableObject {
         let isUndoSpawn = event.keyCode == 6 || raw == "z"
         if isUndoSpawn {
             undoLastSpawnedBody()
+            return true
+        }
+
+        if raw == "1" {
+            selectCursorTool()
+            return true
+        }
+
+        if raw == "2" {
+            drawingTool = .none
+            weldToolEnabled = true
+            wheelToolEnabled = false
+            bounceToolEnabled = false
+            return true
+        }
+
+        if raw == "3" {
+            drawingTool = .none
+            weldToolEnabled = false
+            wheelToolEnabled = true
+            bounceToolEnabled = false
+            return true
+        }
+
+        if raw == "4" {
+            drawingTool = .none
+            weldToolEnabled = false
+            wheelToolEnabled = false
+            bounceToolEnabled.toggle()
+            return true
+        }
+
+        if raw == "5" {
+            toggleSlipTool()
+            return true
+        }
+
+        if raw == "6" {
+            toggleStickyTool()
+            return true
+        }
+
+        if event.keyCode == 5 || raw == "g" {
+            timeScale = abs(timeScale - 0.5) < 0.01 ? 1.0 : 0.5
+            return true
+        }
+
+        if event.keyCode == 4 || raw == "h" {
+            timeScale = abs(timeScale - 2.0) < 0.01 ? 1.0 : 2.0
+            return true
+        }
+
+        if event.keyCode == 12 || raw == "q" {
+            spawnCube(at: lastPointerLocation)
+            return true
+        }
+
+        if event.keyCode == 13 || raw == "w" {
+            spawnCircle(at: lastPointerLocation)
+            return true
+        }
+
+        if event.keyCode == 14 || raw == "e" {
+            spawnTriangle(at: lastPointerLocation, regular: true)
+            return true
+        }
+
+        if event.keyCode == 15 || raw == "r" {
+            toggleDrawingTool(.quadrilateral)
+            return true
+        }
+
+        if event.keyCode == 17 || raw == "t" {
+            toggleDrawingTool(.ellipse)
+            return true
+        }
+
+        if event.keyCode == 16 || raw == "y" {
+            toggleDrawingTool(.triangle)
+            return true
+        }
+
+        if event.keyCode == 32 || raw == "u" {
+            toggleDrawingTool(.freeform)
             return true
         }
 
@@ -1478,8 +1843,25 @@ final class WaveModel: ObservableObject {
         drawingTool = (drawingTool == tool) ? .none : tool
     }
 
+    func selectCursorTool() {
+        drawingTool = .none
+        weldToolEnabled = false
+        wheelToolEnabled = false
+        bounceToolEnabled = false
+        slipToolEnabled = false
+        stickyToolEnabled = false
+        pendingWeldBodyID = nil
+        pendingWeldAnchorLocal = nil
+        weldPendingPoint = nil
+        weldCursorPoint = nil
+        wheelCursorPoint = nil
+    }
+
     func toggleWeldTool() {
         weldToolEnabled.toggle()
+        if weldToolEnabled {
+            bounceToolEnabled = false
+        }
         if !weldToolEnabled {
             pendingWeldBodyID = nil
             pendingWeldAnchorLocal = nil
@@ -1490,9 +1872,24 @@ final class WaveModel: ObservableObject {
 
     func toggleWheelTool() {
         wheelToolEnabled.toggle()
+        if wheelToolEnabled {
+            bounceToolEnabled = false
+        }
         if !wheelToolEnabled {
             wheelCursorPoint = nil
         }
+    }
+
+    func toggleBounceTool() {
+        bounceToolEnabled.toggle()
+    }
+
+    func toggleSlipTool() {
+        slipToolEnabled.toggle()
+    }
+
+    func toggleStickyTool() {
+        stickyToolEnabled.toggle()
     }
 
     func clearWelds() {
@@ -1564,6 +1961,7 @@ final class WaveModel: ObservableObject {
         lastDragTimestamp = nil
         recentDragVelocity = .zero
         recentDragAngularVelocity = 0
+        dragSamples.removeAll(keepingCapacity: true)
         weldConstraints.removeAll(keepingCapacity: true)
         wheelBodies.removeAll(keepingCapacity: true)
         pendingWeldBodyID = nil
@@ -1573,6 +1971,14 @@ final class WaveModel: ObservableObject {
         wheelCursorPoint = nil
         spawnedBodyHistory.removeAll(keepingCapacity: true)
         clearDrawingState()
+        selectedBodyIDs.removeAll(keepingCapacity: true)
+        primarySelectionID = nil
+        selectionRect = nil
+        selectionDragStart = nil
+        selectionDragActive = false
+        selectionMoveStart = nil
+        selectionMoveCenters.removeAll(keepingCapacity: true)
+        selectionMoveActive = false
 
         let spawn = defaultBodyCenter(forIndex: 0, in: viewportSize)
         bodies = [makeBody(shape: .cube, center: spawn)]
@@ -1582,6 +1988,7 @@ final class WaveModel: ObservableObject {
 
     func addCube() {
         guard bodies.count < 32 else { return }
+        spawnKind = .cube
 
         let hasViewport = viewportSize.width > 1 && viewportSize.height > 1
         let size = hasViewport ? viewportSize : CGSize(width: 1000, height: 560)
@@ -1602,9 +2009,9 @@ final class WaveModel: ObservableObject {
         )
 
         var body = makeBody(shape: .cube, center: CGPoint(x: spawnX, y: spawnY))
-        body.angle = CGFloat.random(in: -0.18...0.18)
-        body.velocity = CGVector(dx: CGFloat.random(in: -0.4...0.4), dy: CGFloat.random(in: -0.2...0.2))
-        body.angularVelocity = CGFloat.random(in: -0.03...0.03)
+        body.angle = 0
+        body.velocity = .zero
+        body.angularVelocity = 0
 
         bodies.append(body)
         recordSpawn(body.id)
@@ -1614,6 +2021,8 @@ final class WaveModel: ObservableObject {
 
     func addCircle() {
         guard bodies.count < 32 else { return }
+        spawnKind = .circle
+        spawnKind = .circle
 
         let hasViewport = viewportSize.width > 1 && viewportSize.height > 1
         let size = hasViewport ? viewportSize : CGSize(width: 1000, height: 560)
@@ -1634,11 +2043,29 @@ final class WaveModel: ObservableObject {
         )
 
         var body = makeBody(shape: .circle, center: CGPoint(x: spawnX, y: spawnY))
-        body.velocity = CGVector(dx: CGFloat.random(in: -0.35...0.35), dy: CGFloat.random(in: -0.18...0.18))
-        body.angularVelocity = CGFloat.random(in: -0.025...0.025)
+        body.velocity = .zero
+        body.angularVelocity = 0
         bodies.append(body)
         recordSpawn(body.id)
         clampAllBodiesInside()
+        syncBodyDrawStates()
+    }
+
+    func addTriangle() {
+        guard bodies.count < 32 else { return }
+        let hasViewport = viewportSize.width > 1 && viewportSize.height > 1
+        let size = hasViewport ? viewportSize : CGSize(width: 1000, height: 560)
+        let spawnX = size.width * 0.5 + CGFloat.random(in: -size.width * 0.18...size.width * 0.18)
+        let targetWaterY = hasViewport ? waveHeight(atX: spawnX) : size.height * 0.5
+        let spawnY = targetWaterY - squareSize * 0.5 + CGFloat.random(in: -10...10)
+        let center = CGPoint(x: spawnX, y: spawnY)
+        let vertices = baseTrianglePoints(center: center)
+        addPolygonBody(
+            fromWorldVertices: vertices,
+            preserveTopology: true,
+            targetMaxVertexCount: 3,
+            collisionMaxVertexCount: 3
+        )
         syncBodyDrawStates()
     }
 
@@ -1664,6 +2091,13 @@ final class WaveModel: ObservableObject {
         bodies.remove(at: index)
         spawnedBodyHistory.removeAll { $0 == removedID }
         bodySplashCooldown.removeValue(forKey: removedID)
+        selectedBodyIDs.remove(removedID)
+        if primarySelectionID == removedID {
+            primarySelectionID = nil
+        }
+        if selectedBodyIDs.count == 1 {
+            primarySelectionID = selectedBodyIDs.first
+        }
 
         if let draggingBodyIndex {
             if draggingBodyIndex == index {
@@ -1684,6 +2118,10 @@ final class WaveModel: ObservableObject {
     }
 
     private func rotateObjectFromKeyboard(clockwise: Bool, snapped: Bool) {
+        if selectedBodyIDs.count > 1 {
+            rotateSelectedFromKeyboard(clockwise: clockwise, snapped: snapped)
+            return
+        }
         guard let targetIndex = keyboardRotationTargetIndex(), bodies.indices.contains(targetIndex) else { return }
 
         let freeStep = max(0.5, keyboardRotateStepDegrees) * .pi / 180
@@ -1691,6 +2129,46 @@ final class WaveModel: ObservableObject {
         let baseStep: CGFloat = snapped ? snapStep : freeStep
         let deltaAngle: CGFloat = clockwise ? baseStep : -baseStep
         applyAngularDelta(deltaAngle, toComponentContaining: targetIndex, zeroAngularVelocity: false)
+    }
+
+    private func rotateSelectedFromKeyboard(clockwise: Bool, snapped: Bool) {
+        let indices = selectedBodyIDs.compactMap(bodyIndex(forID:))
+        guard indices.count > 1 else { return }
+
+        let freeStep = max(0.5, keyboardRotateStepDegrees) * .pi / 180
+        let snapStep = max(1, keyboardRotateSnapDegrees) * .pi / 180
+        let baseStep: CGFloat = snapped ? snapStep : freeStep
+        let deltaAngle: CGFloat = clockwise ? baseStep : -baseStep
+
+        let pivotIndex: Int
+        if let primarySelectionID, let primaryIndex = bodyIndex(forID: primarySelectionID) {
+            pivotIndex = primaryIndex
+        } else if let draggingBodyIndex, indices.contains(draggingBodyIndex) {
+            pivotIndex = draggingBodyIndex
+        } else {
+            pivotIndex = indices[0]
+        }
+        let pivot = bodies[pivotIndex].center
+
+        let cosA = cos(deltaAngle)
+        let sinA = sin(deltaAngle)
+
+        for index in indices where bodies.indices.contains(index) {
+            var body = bodies[index]
+            let dx = body.center.x - pivot.x
+            let dy = body.center.y - pivot.y
+            body.center = CGPoint(
+                x: pivot.x + dx * cosA - dy * sinA,
+                y: pivot.y + dx * sinA + dy * cosA
+            )
+            body.angle = normalizedAngle(body.angle + deltaAngle)
+            body.angularVelocity = 0
+            bodies[index] = body
+        }
+
+        clampAllBodiesInside()
+        syncBodyDrawStates()
+        syncWeldPreviewPoints()
     }
 
     private func snapDraggedObjectToParallel() {
@@ -1734,14 +2212,45 @@ final class WaveModel: ObservableObject {
         syncWeldPreviewPoints()
     }
 
+    private func recordDragSample(position: CGPoint, time: TimeInterval) {
+        dragSamples.append(DragSample(time: time, position: position))
+        if dragSamples.count > 8 {
+            dragSamples.removeFirst(dragSamples.count - 8)
+        }
+    }
+
+    private func smoothedDragVelocity(currentTime: TimeInterval) -> CGVector {
+        let window = dragSamples.filter { currentTime - $0.time <= 0.18 }
+        guard let first = window.first, let last = window.last, window.count >= 2 else { return .zero }
+
+        let dt = max(CGFloat(last.time - first.time), 1.0 / 240.0)
+        let vx = (last.position.x - first.position.x) / (dt * 60)
+        let vy = (last.position.y - first.position.y) / (dt * 60)
+        return CGVector(dx: vx, dy: vy)
+    }
+
+    private func stabilizedThrowVelocity(_ velocity: CGVector) -> CGVector {
+        let absX = abs(velocity.dx)
+        let absY = abs(velocity.dy)
+        if absX > absY * 1.6 {
+            let dampedY = absY < 0.6 ? 0 : velocity.dy * 0.2
+            return CGVector(dx: velocity.dx, dy: dampedY)
+        }
+        if absY > absX * 1.6 {
+            let dampedX = absX < 0.6 ? 0 : velocity.dx * 0.2
+            return CGVector(dx: dampedX, dy: velocity.dy)
+        }
+        return velocity
+    }
+
     private func keyboardRotationTargetIndex() -> Int? {
-        if let draggingBodyIndex, bodies.indices.contains(draggingBodyIndex) {
-            return draggingBodyIndex
+        if let primarySelectionID, let primaryIndex = bodyIndex(forID: primarySelectionID) {
+            return primaryIndex
         }
-        if let cursor = lastPointerLocation, let hovered = bodyIndex(containing: cursor) {
-            return hovered
+        if selectedBodyIDs.count == 1, let id = selectedBodyIDs.first, let index = bodyIndex(forID: id) {
+            return index
         }
-        return bodies.indices.last
+        return nil
     }
 
     func registerKeyPress() {
@@ -1770,6 +2279,41 @@ final class WaveModel: ObservableObject {
         wheelCursorPoint = wheelToolEnabled ? location : nil
         syncWeldPreviewPoints()
 
+        if selectionDragActive {
+            if let location {
+                updateSelectionRect(to: location, additive: isShiftPressed)
+            }
+            pointerX = nil
+            pointerStrength = 0
+            return
+        }
+
+        if selectionMoveActive {
+            guard let location else { return }
+            guard let start = selectionMoveStart else { return }
+            let dx = location.x - start.x
+            let dy = location.y - start.y
+            for (id, center) in selectionMoveCenters {
+                guard let index = bodyIndex(forID: id), bodies.indices.contains(index) else { continue }
+                var body = bodies[index]
+                body.center = clampedBodyCenter(
+                    CGPoint(x: center.x + dx, y: center.y + dy),
+                    for: body
+                )
+                body.velocity = .zero
+                body.angularVelocity = 0
+                bodies[index] = body
+            }
+            if isTimeFrozen {
+                resolveWheelPinnedCenters()
+                syncWeldPreviewPoints()
+            }
+            pointerX = nil
+            pointerStrength = 0
+            syncBodyDrawStates()
+            return
+        }
+
         if drawingTool != .none {
             if let location {
                 updateDrawing(at: location, constrained: isShiftPressed)
@@ -1790,28 +2334,42 @@ final class WaveModel: ObservableObject {
                 x: location.x + dragOffset.width,
                 y: location.y + dragOffset.height
             )
-            let clamped = clampedBodyCenter(target, for: bodies[draggingBodyIndex])
+            let clamped = clampedDragCenter(target, for: bodies[draggingBodyIndex])
 
             var body = bodies[draggingBodyIndex]
 
-            if let lastDragCenter, let lastDragTimestamp {
-                let dt = max(CGFloat(timestamp - lastDragTimestamp), 1.0 / 240.0)
-                let velocityX = (clamped.x - lastDragCenter.x) / (dt * 60)
-                let velocityY = (clamped.y - lastDragCenter.y) / (dt * 60)
-                let measuredAngular = velocityX * 0.0052 + velocityY * 0.0016
-                recentDragVelocity.dx = recentDragVelocity.dx * 0.52 + velocityX * 0.48
-                recentDragVelocity.dy = recentDragVelocity.dy * 0.52 + velocityY * 0.48
-                recentDragAngularVelocity = recentDragAngularVelocity * 0.56 + measuredAngular * 0.44
-                body.velocity.dx = body.velocity.dx * 0.34 + velocityX * 0.66
-                body.velocity.dy = body.velocity.dy * 0.34 + velocityY * 0.66
-                body.angularVelocity = body.angularVelocity * 0.54 + measuredAngular * 0.46
+            if !isTimeFrozen {
+                recordDragSample(position: clamped, time: timestamp)
+                let velocity = stabilizedThrowVelocity(smoothedDragVelocity(currentTime: timestamp))
+                let speed = hypot(velocity.dx, velocity.dy)
+                let accelFactor = 1 + max(0, dragThrowAcceleration) * min(2.2, speed / 6)
+                let linearScale = max(0, dragThrowLinearInertia) * accelFactor
+                let angularScale = max(0, dragThrowAngularInertia) * accelFactor
+                let scaledVelocity = CGVector(dx: velocity.dx * linearScale, dy: velocity.dy * linearScale)
+
+                recentDragVelocity = scaledVelocity
+
+                let lever = CGVector(dx: -dragOffset.width, dy: -dragOffset.height)
+                let leverSq = max(1, lever.dx * lever.dx + lever.dy * lever.dy)
+                let measuredAngular = cross(lever, velocity) / leverSq
+                recentDragAngularVelocity = measuredAngular * angularScale
+
+                body.velocity = scaledVelocity
+                body.angularVelocity = measuredAngular * angularScale
             }
 
             body.center = clamped
+            if isTimeFrozen {
+                body.velocity = .zero
+                body.angularVelocity = 0
+            }
             bodies[draggingBodyIndex] = body
             lastDragCenter = clamped
             lastDragTimestamp = timestamp
             propagateDraggedWeldComponent(from: draggingBodyIndex)
+            if isTimeFrozen {
+                resolveWheelPinnedCenters()
+            }
 
             pointerX = nil
             pointerStrength = 0
@@ -1827,6 +2385,12 @@ final class WaveModel: ObservableObject {
         }
 
         if wheelToolEnabled {
+            pointerX = nil
+            pointerStrength = 0
+            return
+        }
+
+        if bounceToolEnabled {
             pointerX = nil
             pointerStrength = 0
             return
@@ -1849,6 +2413,13 @@ final class WaveModel: ObservableObject {
 
         switch button {
         case .left:
+            selectionDragActive = false
+            selectionRect = nil
+            selectionDragStart = nil
+            selectionMoveActive = false
+            selectionMoveStart = nil
+            selectionMoveCenters.removeAll(keepingCapacity: true)
+
             if drawingTool != .none {
                 beginDrawing(at: location, constrained: isShiftPressed)
                 pointerX = nil
@@ -1872,7 +2443,52 @@ final class WaveModel: ObservableObject {
                 return
             }
 
+            if bounceToolEnabled {
+                handleBounceSelection(at: location)
+                pointerX = nil
+                pointerStrength = 0
+                syncBodyDrawStates()
+                return
+            }
+
+            if slipToolEnabled {
+                handleSlipSelection(at: location)
+                pointerX = nil
+                pointerStrength = 0
+                syncBodyDrawStates()
+                return
+            }
+
+            if stickyToolEnabled {
+                handleStickySelection(at: location)
+                pointerX = nil
+                pointerStrength = 0
+                syncBodyDrawStates()
+                return
+            }
+
             if let index = bodyIndex(containing: location) {
+                let bodyID = bodies[index].id
+                if !selectedBodyIDs.contains(bodyID) {
+                    selectedBodyIDs = [bodyID]
+                }
+                primarySelectionID = bodyID
+
+                if isTimeFrozen, selectedBodyIDs.count > 1 {
+                    selectionMoveActive = true
+                    selectionMoveStart = location
+                    selectionMoveCenters = [:]
+                    for id in selectedBodyIDs {
+                        if let idx = bodyIndex(forID: id), bodies.indices.contains(idx) {
+                            selectionMoveCenters[id] = bodies[idx].center
+                        }
+                    }
+                    pointerX = nil
+                    pointerStrength = 0
+                    syncBodyDrawStates()
+                    return
+                }
+
                 draggingBodyIndex = index
                 let center = bodies[index].center
                 dragOffset = CGSize(
@@ -1883,6 +2499,7 @@ final class WaveModel: ObservableObject {
                 lastDragTimestamp = timestamp
                 recentDragVelocity = .zero
                 recentDragAngularVelocity = 0
+                dragSamples = [DragSample(time: timestamp, position: center)]
                 let weldedIndices = weldedComponentIndices(containing: index)
                 for weldedIndex in weldedIndices {
                     bodies[weldedIndex].velocity = .zero
@@ -1895,12 +2512,20 @@ final class WaveModel: ObservableObject {
                 return
             }
 
-            updatePointer(at: location, in: size)
-            if isTimeFrozen { return }
-            registerPointerClick(at: location, in: size)
+            if !isShiftPressed {
+                selectedBodyIDs.removeAll(keepingCapacity: true)
+                primarySelectionID = nil
+            }
+            selectionDragStart = location
+            selectionDragActive = true
+            selectionRect = CGRect(origin: location, size: .zero)
+            syncBodyDrawStates()
+            pointerX = nil
+            pointerStrength = 0
+            return
 
         case .right:
-            if weldToolEnabled || wheelToolEnabled || drawingTool != .none {
+            if weldToolEnabled || wheelToolEnabled || bounceToolEnabled || drawingTool != .none {
                 return
             }
 
@@ -1936,6 +2561,31 @@ final class WaveModel: ObservableObject {
             return
         }
 
+        if button == .left, selectionMoveActive {
+            selectionMoveActive = false
+            selectionMoveStart = nil
+            selectionMoveCenters.removeAll(keepingCapacity: true)
+            resolveWheelPinnedCenters()
+            syncBodyDrawStates()
+            syncWeldPreviewPoints()
+            return
+        }
+
+        if button == .left, selectionDragActive {
+            selectionDragActive = false
+            selectionDragStart = nil
+            if let rect = selectionRect, rect.width < 4, rect.height < 4, !isShiftPressed {
+                selectedBodyIDs.removeAll(keepingCapacity: true)
+                primarySelectionID = nil
+            }
+            selectionRect = nil
+            if selectedBodyIDs.count == 1 {
+                primarySelectionID = selectedBodyIDs.first
+            }
+            syncBodyDrawStates()
+            return
+        }
+
         if button == .left, let index = draggingBodyIndex {
             guard bodies.indices.contains(index) else {
                 draggingBodyIndex = nil
@@ -1943,6 +2593,20 @@ final class WaveModel: ObservableObject {
                 lastDragTimestamp = nil
                 recentDragVelocity = .zero
                 recentDragAngularVelocity = 0
+                dragSamples.removeAll(keepingCapacity: true)
+                return
+            }
+
+            if isTimeFrozen {
+                draggingBodyIndex = nil
+                lastDragCenter = nil
+                lastDragTimestamp = nil
+                recentDragVelocity = .zero
+                recentDragAngularVelocity = 0
+                dragSamples.removeAll(keepingCapacity: true)
+                resolveWheelPinnedCenters()
+                syncBodyDrawStates()
+                syncWeldPreviewPoints()
                 return
             }
 
@@ -1951,46 +2615,22 @@ final class WaveModel: ObservableObject {
                 x: location.x + dragOffset.width,
                 y: location.y + dragOffset.height
             )
-            let clamped = clampedBodyCenter(target, for: root)
-
-            if let lastDragCenter, let lastDragTimestamp {
-                let dt = max(CGFloat(timestamp - lastDragTimestamp), 1.0 / 240.0)
-                let velocityX = (clamped.x - lastDragCenter.x) / (dt * 60)
-                let velocityY = (clamped.y - lastDragCenter.y) / (dt * 60)
-                let measuredAngular = velocityX * 0.006 + velocityY * 0.002
-                recentDragVelocity.dx = recentDragVelocity.dx * 0.45 + velocityX * 0.55
-                recentDragVelocity.dy = recentDragVelocity.dy * 0.45 + velocityY * 0.55
-                recentDragAngularVelocity = recentDragAngularVelocity * 0.5 + measuredAngular * 0.5
-            }
-
+            let clamped = clampedDragCenter(target, for: root)
             root.center = clamped
-            let horizontalBoost: CGFloat = (root.shape == .circle) ? 1.34 : 1.18
-            root.velocity.dx = recentDragVelocity.dx * horizontalBoost
-            root.velocity.dy = recentDragVelocity.dy
-            root.angularVelocity = recentDragAngularVelocity
-            root.velocity.dx *= max(0, dragThrowLinearInertia)
-            root.velocity.dy *= max(0, dragThrowLinearInertia)
-            root.angularVelocity *= max(0, dragThrowAngularInertia)
             bodies[index] = root
 
+            // Preserve current velocity/rotation for true inertial release.
             propagateDraggedWeldComponent(from: index)
-
-            let weldedIndices = weldedComponentIndices(containing: index)
-            let clampScale = max(0.5, dragThrowClampScale)
-            let maxVX = squareVelocityLimitX * clampScale
-            let maxVY = squareVelocityLimitY * clampScale
-            let maxAV = squareAngularLimit * clampScale
-
-            for weldedIndex in weldedIndices where bodies.indices.contains(weldedIndex) {
-                bodies[weldedIndex].velocity.dx = max(-maxVX, min(maxVX, bodies[weldedIndex].velocity.dx))
-                bodies[weldedIndex].velocity.dy = max(-maxVY, min(maxVY, bodies[weldedIndex].velocity.dy))
-                bodies[weldedIndex].angularVelocity = max(-maxAV, min(maxAV, bodies[weldedIndex].angularVelocity))
+            let releasedIndices = weldedComponentIndices(containing: index)
+            for releasedIndex in releasedIndices where bodies.indices.contains(releasedIndex) {
+                throwCooldown[bodies[releasedIndex].id] = 14
             }
             draggingBodyIndex = nil
             lastDragCenter = nil
             lastDragTimestamp = nil
             recentDragVelocity = .zero
             recentDragAngularVelocity = 0
+            dragSamples.removeAll(keepingCapacity: true)
             syncBodyDrawStates()
             syncWeldPreviewPoints()
         }
@@ -2001,7 +2641,7 @@ final class WaveModel: ObservableObject {
         switch drawingTool {
         case .none:
             clearDrawingState()
-        case .quadrilateral, .ellipse:
+        case .quadrilateral, .ellipse, .triangle:
             updateDrawing(at: point, constrained: constrained)
         case .freeform:
             freeformPoints = [point]
@@ -2023,6 +2663,9 @@ final class WaveModel: ObservableObject {
             drawingPreviewClosed = true
         case .ellipse:
             drawingPreviewPoints = ellipsePoints(from: drawingStartPoint ?? point, to: endPoint, segmentCount: 96)
+            drawingPreviewClosed = true
+        case .triangle:
+            drawingPreviewPoints = trianglePoints(from: drawingStartPoint ?? point, to: endPoint)
             drawingPreviewClosed = true
         case .freeform:
             if let last = freeformPoints.last {
@@ -2064,6 +2707,13 @@ final class WaveModel: ObservableObject {
                 targetMaxVertexCount: 84,
                 collisionMaxVertexCount: 14
             )
+        case .triangle:
+            addPolygonBody(
+                fromWorldVertices: trianglePoints(from: drawingStartPoint ?? point, to: endPoint),
+                preserveTopology: true,
+                targetMaxVertexCount: 3,
+                collisionMaxVertexCount: 3
+            )
         case .freeform:
             addPolygonBody(
                 fromWorldVertices: freeformPoints,
@@ -2084,6 +2734,136 @@ final class WaveModel: ObservableObject {
         drawingPreviewClosed = false
     }
 
+    private func spawnLocation(_ location: CGPoint?, shape: BodyShape) -> CGPoint {
+        if let location {
+            return clampedBodyCenter(location, for: makeBody(shape: shape, center: location))
+        }
+        let hasViewport = viewportSize.width > 1 && viewportSize.height > 1
+        let size = hasViewport ? viewportSize : CGSize(width: 1000, height: 560)
+        return CGPoint(x: size.width * 0.5, y: size.height * 0.4)
+    }
+
+    private func spawnCube(at location: CGPoint?) {
+        guard bodies.count < 32 else { return }
+        let center = spawnLocation(location, shape: .cube)
+        var body = makeBody(shape: .cube, center: center)
+        body.angle = 0
+        body.velocity = .zero
+        body.angularVelocity = 0
+        bodies.append(body)
+        recordSpawn(body.id)
+        clampAllBodiesInside()
+        syncBodyDrawStates()
+    }
+
+    private func spawnCircle(at location: CGPoint?) {
+        guard bodies.count < 32 else { return }
+        let center = spawnLocation(location, shape: .circle)
+        let body = makeBody(shape: .circle, center: center)
+        bodies.append(body)
+        recordSpawn(body.id)
+        clampAllBodiesInside()
+        syncBodyDrawStates()
+    }
+
+    private func spawnTriangle(at location: CGPoint?, regular: Bool) {
+        guard bodies.count < 32 else { return }
+        let center = spawnLocation(location, shape: .polygon)
+        let vertices = regular ? baseTrianglePoints(center: center) : randomTrianglePoints(center: center)
+        addPolygonBody(
+            fromWorldVertices: vertices,
+            preserveTopology: true,
+            targetMaxVertexCount: 3,
+            collisionMaxVertexCount: 3
+        )
+        syncBodyDrawStates()
+    }
+
+    private func spawnQuad(at location: CGPoint?) {
+        guard bodies.count < 32 else { return }
+        let center = spawnLocation(location, shape: .polygon)
+        let half = squareSize * 0.5
+        let vertices = [
+            CGPoint(x: center.x - half, y: center.y - half),
+            CGPoint(x: center.x + half, y: center.y - half),
+            CGPoint(x: center.x + half, y: center.y + half),
+            CGPoint(x: center.x - half, y: center.y + half)
+        ]
+        addPolygonBody(
+            fromWorldVertices: vertices,
+            preserveTopology: true,
+            targetMaxVertexCount: 4,
+            collisionMaxVertexCount: 4
+        )
+        syncBodyDrawStates()
+    }
+
+    private func spawnCirclePolygon(at location: CGPoint?) {
+        guard bodies.count < 32 else { return }
+        let center = spawnLocation(location, shape: .polygon)
+        let radius = circleRadius
+        let vertices = ellipsePoints(from: CGPoint(x: center.x - radius, y: center.y - radius), to: CGPoint(x: center.x + radius, y: center.y + radius), segmentCount: 84)
+        addPolygonBody(
+            fromWorldVertices: vertices,
+            preserveTopology: true,
+            targetMaxVertexCount: 84,
+            collisionMaxVertexCount: 14
+        )
+        syncBodyDrawStates()
+    }
+
+    private func spawnFreeform(at location: CGPoint?) {
+        guard bodies.count < 32 else { return }
+        let center = spawnLocation(location, shape: .polygon)
+        let half = squareSize * 0.5
+        let vertices = [
+            CGPoint(x: center.x - half, y: center.y - half),
+            CGPoint(x: center.x + half, y: center.y - half),
+            CGPoint(x: center.x + half, y: center.y + half),
+            CGPoint(x: center.x - half, y: center.y + half),
+            CGPoint(x: center.x - half * 0.7, y: center.y)
+        ]
+        addPolygonBody(
+            fromWorldVertices: vertices,
+            preserveTopology: true,
+            targetMaxVertexCount: 8,
+            collisionMaxVertexCount: 8
+        )
+        syncBodyDrawStates()
+    }
+
+    private func baseTrianglePoints(center: CGPoint) -> [CGPoint] {
+        let halfWidth = squareSize * 0.5
+        let height = squareSize
+        let topY = center.y - height * (2.0 / 3.0)
+        let bottomY = center.y + height * (1.0 / 3.0)
+        return [
+            CGPoint(x: center.x, y: topY),
+            CGPoint(x: center.x + halfWidth, y: bottomY),
+            CGPoint(x: center.x - halfWidth, y: bottomY)
+        ]
+    }
+
+    private func randomTrianglePoints(center: CGPoint) -> [CGPoint] {
+        let r = squareSize * 0.65
+        let angles = [
+            CGFloat.random(in: 0..<(.pi * 2)),
+            CGFloat.random(in: 0..<(.pi * 2)),
+            CGFloat.random(in: 0..<(.pi * 2))
+        ].sorted()
+        var points = angles.map { angle in
+            CGPoint(
+                x: center.x + cos(angle) * r * CGFloat.random(in: 0.6...1),
+                y: center.y + sin(angle) * r * CGFloat.random(in: 0.6...1)
+            )
+        }
+        let centroid = polygonCentroid(points)
+        let dx = center.x - centroid.x
+        let dy = center.y - centroid.y
+        points = points.map { CGPoint(x: $0.x + dx, y: $0.y + dy) }
+        return points
+    }
+
     private func constrainedDragEnd(from start: CGPoint, to end: CGPoint, constrained: Bool) -> CGPoint {
         guard constrained else { return end }
         let dx = end.x - start.x
@@ -2094,6 +2874,19 @@ final class WaveModel: ObservableObject {
             x: start.x + (dx < 0 ? -side : side),
             y: start.y + (dy < 0 ? -side : side)
         )
+    }
+
+    private func trianglePoints(from start: CGPoint, to end: CGPoint) -> [CGPoint] {
+        let minX = min(start.x, end.x)
+        let maxX = max(start.x, end.x)
+        let minY = min(start.y, end.y)
+        let maxY = max(start.y, end.y)
+        let midX = (minX + maxX) * 0.5
+        return [
+            CGPoint(x: midX, y: minY),
+            CGPoint(x: maxX, y: maxY),
+            CGPoint(x: minX, y: maxY)
+        ]
     }
 
     private func updatePointer(at location: CGPoint?, in size: CGSize) {
@@ -2163,27 +2956,34 @@ final class WaveModel: ObservableObject {
     private func tick() {
         let now = CFAbsoluteTimeGetCurrent()
         let targetFPS = max(20, effectiveTickFPS())
-        var dt = 1.0 / Double(targetFPS)
+        let fixedStep = Double(physicsStep)
+        var elapsed = fixedStep
 
         if let lastTickTimestamp {
-            let elapsed = now - lastTickTimestamp
-            if elapsed > 0.0001 {
-                dt = elapsed
-            }
+            elapsed = max(0.0, now - lastTickTimestamp)
         }
         lastTickTimestamp = now
 
-        updateFPS(stepDelta: dt, targetFPS: targetFPS)
+        updateFPS(stepDelta: elapsed, targetFPS: targetFPS)
         guard samples.count > 2 else { return }
         guard !isTimeFrozen else { return }
 
-        if shouldSkipCalmFrame() {
-            calmSkipToggle.toggle()
-            if calmSkipToggle { return }
-        } else {
-            calmSkipToggle = false
+        simulationAccumulator += min(elapsed, 0.1) * Double(max(0.2, timeScale))
+        let maxSteps = 12
+        var steps = Int(simulationAccumulator / fixedStep)
+        if steps <= 0 { return }
+        if steps > maxSteps {
+            steps = maxSteps
+            simulationAccumulator = fixedStep * Double(maxSteps)
         }
 
+        for _ in 0..<steps {
+            stepSimulation()
+            simulationAccumulator -= fixedStep
+        }
+    }
+
+    private func stepSimulation() {
         activity = max(0, activity * 0.996)
 
         let stiffness = max(0, stiffnessBase + activity * stiffnessActivity)
@@ -2191,7 +2991,15 @@ final class WaveModel: ObservableObject {
         let visc = max(0, viscosity)
         let waterMode = sceneLocation == .water
 
-        updateBodiesPhysics()
+        let substeps = physicsSubsteps()
+        let stepScale = 1.0 / CGFloat(substeps)
+        if substeps <= 1 {
+            updateBodiesPhysics(stepScale: 1.0)
+        } else {
+            for _ in 0..<substeps {
+                updateBodiesPhysics(stepScale: stepScale)
+            }
+        }
         if waterMode {
             updateWaterChunks()
         } else {
@@ -2262,13 +3070,6 @@ final class WaveModel: ObservableObject {
             fpsSampleSum = 0
             fpsSampleCount = 0
         }
-    }
-
-    private func shouldSkipCalmFrame() -> Bool {
-        if bodies.count > 7 { return false }
-        if weldToolEnabled || wheelToolEnabled || drawingTool != .none { return false }
-        if !waterChunks.isEmpty { return false }
-        return isSceneCalm()
     }
 
     private func updateWaterChunks() {
@@ -2515,9 +3316,41 @@ final class WaveModel: ObservableObject {
 
     }
 
-    private func updateBodiesPhysics() {
+    private func updateBodiesPhysics(stepScale: CGFloat) {
         guard viewportSize.width > 1, viewportSize.height > 1 else { return }
         guard !bodies.isEmpty else { return }
+
+        let fallScale = max(0, fallAccelerationScale)
+        let wheelHostIDs: Set<UUID>
+        let wheelGroundedHosts: Set<UUID>
+        if wheelBodies.isEmpty {
+            wheelHostIDs = []
+            wheelGroundedHosts = []
+        } else {
+            var hosts: Set<UUID> = []
+            var groundedHosts: Set<UUID> = []
+            for weld in weldConstraints {
+                if wheelBodies.contains(weld.firstID), !wheelBodies.contains(weld.secondID) {
+                    hosts.insert(weld.secondID)
+                    if let wheelIndex = bodyIndex(forID: weld.firstID), bodies.indices.contains(wheelIndex) {
+                        let wheel = bodies[wheelIndex]
+                        if sceneLocation != .water, groundContactInfo(for: wheel) != nil {
+                            groundedHosts.insert(weld.secondID)
+                        }
+                    }
+                } else if wheelBodies.contains(weld.secondID), !wheelBodies.contains(weld.firstID) {
+                    hosts.insert(weld.firstID)
+                    if let wheelIndex = bodyIndex(forID: weld.secondID), bodies.indices.contains(wheelIndex) {
+                        let wheel = bodies[wheelIndex]
+                        if sceneLocation != .water, groundContactInfo(for: wheel) != nil {
+                            groundedHosts.insert(weld.firstID)
+                        }
+                    }
+                }
+            }
+            wheelHostIDs = hosts
+            wheelGroundedHosts = groundedHosts
+        }
 
         if !bodySplashCooldown.isEmpty {
             for id in Array(bodySplashCooldown.keys) {
@@ -2526,6 +3359,16 @@ final class WaveModel: ObservableObject {
                     bodySplashCooldown.removeValue(forKey: id)
                 } else {
                     bodySplashCooldown[id] = next
+                }
+            }
+        }
+        if !throwCooldown.isEmpty {
+            for id in Array(throwCooldown.keys) {
+                let next = (throwCooldown[id] ?? 0) - 1
+                if next <= 0 {
+                    throwCooldown.removeValue(forKey: id)
+                } else {
+                    throwCooldown[id] = next
                 }
             }
         }
@@ -2541,7 +3384,8 @@ final class WaveModel: ObservableObject {
             let bodyMass = bodyMass(for: body)
             let bodyInertiaValue = bodyInertia(for: body)
             let waterMode = sceneLocation == .water
-            var totalForce = CGVector(dx: 0, dy: gravityForce * bodyMass)
+            let gravityAccel = gravityForce * fallScale
+            var totalForce = CGVector(dx: 0, dy: gravityAccel * bodyMass)
             var totalTorque: CGFloat = 0
             if waterMode {
                 var submergedSamples = 0
@@ -2621,34 +3465,42 @@ final class WaveModel: ObservableObject {
 
                 if submergedSamples > 0 {
                     totalTorque += -sin(body.angle) * (0.016 + immersionRatio * 0.013)
-                    body.velocity.dx *= 0.992 - immersionRatio * 0.01
-                    body.velocity.dy *= 0.992 - immersionRatio * 0.012
-                    body.angularVelocity *= 0.991 - immersionRatio * 0.011
+                    let dampX = max(0.8, 0.992 - immersionRatio * 0.01)
+                    let dampY = max(0.8, 0.992 - immersionRatio * 0.012)
+                    let dampA = max(0.8, 0.991 - immersionRatio * 0.011)
+                    body.velocity.dx *= pow(dampX, stepScale)
+                    body.velocity.dy *= pow(dampY, stepScale)
+                    body.angularVelocity *= pow(dampA, stepScale)
                 } else {
-                    body.velocity.dx *= 0.998
-                    body.velocity.dy *= 0.9988
-                    body.angularVelocity *= 0.996
+                    body.velocity.dx *= pow(0.998, stepScale)
+                    body.velocity.dy *= pow(0.9988, stepScale)
+                    body.angularVelocity *= pow(0.996, stepScale)
                 }
             } else {
-                body.velocity.dx *= 0.9988
-                body.velocity.dy *= 0.9991
-                body.angularVelocity *= 0.997
+                body.velocity.dx *= pow(0.9988, stepScale)
+                body.velocity.dy *= pow(0.9991, stepScale)
+                body.angularVelocity *= pow(0.997, stepScale)
             }
 
-            body.velocity.dx += totalForce.dx / bodyMass
-            body.velocity.dy += totalForce.dy / bodyMass
-            body.angularVelocity += totalTorque / bodyInertiaValue
+            body.velocity.dx += (totalForce.dx / bodyMass) * stepScale
+            body.velocity.dy += (totalForce.dy / bodyMass) * stepScale
+            body.angularVelocity += (totalTorque / bodyInertiaValue) * stepScale
 
-            body.velocity.dx = max(-squareVelocityLimitX, min(squareVelocityLimitX, body.velocity.dx))
-            body.velocity.dy = max(-squareVelocityLimitY, min(squareVelocityLimitY, body.velocity.dy))
+            let throwBoost = (throwCooldown[body.id] ?? 0) > 0 ? max(1, dragThrowClampScale) : 1
+            let maxVX = squareVelocityLimitX * throwBoost
+            let maxVY = squareVelocityLimitY * max(1, fallScale) * throwBoost
+            body.velocity.dx = max(-maxVX, min(maxVX, body.velocity.dx))
+            body.velocity.dy = max(-maxVY, min(maxVY, body.velocity.dy))
             body.angularVelocity = max(-squareAngularLimit, min(squareAngularLimit, body.angularVelocity))
 
-            body.center.x += body.velocity.dx
-            body.center.y += body.velocity.dy
-            body.angle = normalizedAngle(body.angle + body.angularVelocity)
+            body.center.x += body.velocity.dx * stepScale
+            body.center.y += body.velocity.dy * stepScale
+            body.angle = normalizedAngle(body.angle + body.angularVelocity * stepScale)
             applyWorldBounds(to: &body)
             if !waterMode {
-                applyLandSurfaceConstraint(to: &body)
+                if !wheelHostIDs.contains(body.id) || !wheelGroundedHosts.contains(body.id) {
+                    applyLandSurfaceConstraint(to: &body)
+                }
             }
 
             bodies[index] = body
@@ -2658,19 +3510,28 @@ final class WaveModel: ObservableObject {
         let weldTopology = weldedTopology()
 
         if cubeCollisionEnabled, bodies.count > 1 {
-            resolveBodyCollisions(groupLookup: weldTopology.lookup)
+            resolveBodyCollisions(groupLookup: weldTopology.lookup, stepScale: stepScale)
         }
 
         resolveWeldConstraints(components: weldTopology.components)
 
+        if cubeCollisionEnabled, bodies.count > 1 {
+            resolvePenetrationOnly(groupLookup: weldTopology.lookup, stepScale: stepScale)
+        }
+
         for index in bodies.indices {
             bodies[index].angle = normalizedAngle(bodies[index].angle)
-            bodies[index].velocity.dx = max(-squareVelocityLimitX, min(squareVelocityLimitX, bodies[index].velocity.dx))
-            bodies[index].velocity.dy = max(-squareVelocityLimitY, min(squareVelocityLimitY, bodies[index].velocity.dy))
+            let throwBoost = (throwCooldown[bodies[index].id] ?? 0) > 0 ? max(1, dragThrowClampScale) : 1
+            let maxVX = squareVelocityLimitX * throwBoost
+            let maxVY = squareVelocityLimitY * max(1, fallScale) * throwBoost
+            bodies[index].velocity.dx = max(-maxVX, min(maxVX, bodies[index].velocity.dx))
+            bodies[index].velocity.dy = max(-maxVY, min(maxVY, bodies[index].velocity.dy))
             bodies[index].angularVelocity = max(-squareAngularLimit, min(squareAngularLimit, bodies[index].angularVelocity))
             applyWorldBounds(to: &bodies[index])
             if sceneLocation != .water {
-                applyLandSurfaceConstraint(to: &bodies[index])
+                if !wheelHostIDs.contains(bodies[index].id) || !wheelGroundedHosts.contains(bodies[index].id) {
+                    applyLandSurfaceConstraint(to: &bodies[index])
+                }
                 if shouldSettleBodyAtRest(index: index) {
                     bodies[index].velocity = .zero
                     bodies[index].angularVelocity = 0
@@ -2678,13 +3539,9 @@ final class WaveModel: ObservableObject {
             }
         }
 
-        if !wheelBodies.isEmpty {
-            resolveWheelPinnedCenters()
-        }
-
     }
 
-    private func resolveBodyCollisions(groupLookup: [UUID: Int]) {
+    private func resolveBodyCollisions(groupLookup: [UUID: Int], stepScale: CGFloat) {
         let baseIterations = max(1, Int(collisionIterations.rounded()))
         let heavyScene = bodies.count > 14
         let boosted = heavyScene ? 2 : 3
@@ -2717,10 +3574,62 @@ final class WaveModel: ObservableObject {
                     continue
                 }
 
-                hadCollision = resolveCollisionPair(first, second) || hadCollision
+                hadCollision = resolveCollisionPair(first, second, stepScale: stepScale) || hadCollision
             }
 
             if !hadCollision { break }
+        }
+    }
+
+    private func resolvePenetrationOnly(groupLookup: [UUID: Int], stepScale: CGFloat) {
+        let iterations = max(1, Int(collisionIterations.rounded()))
+        guard bodies.count > 1 else { return }
+        let slop = max(0, collisionSlop * 0.6)
+
+        for _ in 0..<iterations {
+            var separated = false
+            let candidatePairs = candidateCollisionPairs()
+            for pair in candidatePairs {
+                let first = pair.first
+                let second = pair.second
+                guard bodies.indices.contains(first), bodies.indices.contains(second) else { continue }
+
+                let firstID = bodies[first].id
+                let secondID = bodies[second].id
+                if
+                    let groupA = groupLookup[firstID],
+                    let groupB = groupLookup[secondID],
+                    groupA == groupB
+                {
+                    continue
+                }
+
+                var bodyA = bodies[first]
+                var bodyB = bodies[second]
+                guard let manifold = bodyCollisionManifold(bodyA, bodyB), !manifold.contacts.isEmpty else { continue }
+                let maxPenetration = manifold.contacts.map(\.penetration).max() ?? 0
+                if maxPenetration <= slop { continue }
+
+                let invMassA: CGFloat = 1 / max(bodyMass(for: bodyA), 0.0001)
+                let invMassB: CGFloat = 1 / max(bodyMass(for: bodyB), 0.0001)
+                let invMassSum = invMassA + invMassB
+                if invMassSum <= 0 { continue }
+
+                let correctionStrength = min(max(collisionPositionCorrection, 0), 0.8)
+                let correctionMagnitude = (maxPenetration - slop) * correctionStrength / invMassSum
+                let correction = CGVector(
+                    dx: manifold.normal.dx * correctionMagnitude,
+                    dy: manifold.normal.dy * correctionMagnitude
+                )
+                bodyA.center.x -= correction.dx * invMassA
+                bodyA.center.y -= correction.dy * invMassA
+                bodyB.center.x += correction.dx * invMassB
+                bodyB.center.y += correction.dy * invMassB
+                bodies[first] = bodyA
+                bodies[second] = bodyB
+                separated = true
+            }
+            if !separated { break }
         }
     }
 
@@ -2775,13 +3684,14 @@ final class WaveModel: ObservableObject {
         return Array(pairs)
     }
 
-    private func resolveCollisionPair(_ firstIndex: Int, _ secondIndex: Int) -> Bool {
+    private func resolveCollisionPair(_ firstIndex: Int, _ secondIndex: Int, stepScale: CGFloat) -> Bool {
         var first = bodies[firstIndex]
         var second = bodies[secondIndex]
 
-        guard let manifold = bodyCollisionManifold(first, second) else { return false }
+        guard let manifold = bodyCollisionManifold(first, second), !manifold.contacts.isEmpty else { return false }
 
-        if manifold.penetration <= 0.0001 {
+        let maxPenetration = manifold.contacts.map(\.penetration).max() ?? 0
+        if maxPenetration <= 0.0001 {
             return false
         }
 
@@ -2797,9 +3707,9 @@ final class WaveModel: ObservableObject {
             return false
         }
 
-        let correctionStrength = min(max(collisionPositionCorrection, 0), 1)
         let slop = max(0, collisionSlop)
-        let correctionMagnitude = max(manifold.penetration - slop, 0) * correctionStrength / invMassSum
+        let correctionStrength = min(max(collisionPositionCorrection, 0), 0.8)
+        let correctionMagnitude = max(maxPenetration - slop, 0) * correctionStrength / invMassSum
         if correctionMagnitude > 0 {
             let correction = CGVector(
                 dx: manifold.normal.dx * correctionMagnitude,
@@ -2815,109 +3725,157 @@ final class WaveModel: ObservableObject {
             }
         }
 
-        let rFirst = CGVector(
-            dx: manifold.contactPoint.x - first.center.x,
-            dy: manifold.contactPoint.y - first.center.y
-        )
-        let rSecond = CGVector(
-            dx: manifold.contactPoint.x - second.center.x,
-            dy: manifold.contactPoint.y - second.center.y
-        )
-
-        let velocityFirst = velocityAtContact(for: first, offset: rFirst)
-        let velocitySecond = velocityAtContact(for: second, offset: rSecond)
-        var relativeVelocity = CGVector(
-            dx: velocitySecond.dx - velocityFirst.dx,
-            dy: velocitySecond.dy - velocityFirst.dy
-        )
-
-        let velocityAlongNormal = dot(relativeVelocity, manifold.normal)
-        if velocityAlongNormal > 0 {
+        let normalImpulseScale = max(0, collisionImpulseScale)
+        guard normalImpulseScale > 0 else {
             bodies[firstIndex] = first
             bodies[secondIndex] = second
             return true
         }
 
-        let normalImpulseScale = max(0, collisionImpulseScale)
-        if normalImpulseScale > 0 {
+        let dt = max(stepScale, 0.0001)
+        let restitutionBase = min(max(collisionRestitution, 0), 1)
+        let bouncyBase = min(max(bouncyRestitution, 0), 1.2)
+        let useBouncy = first.isBouncy || second.isBouncy
+        let restitutionBoost = useBouncy ? max(restitutionBase, bouncyBase) : restitutionBase
+        let restitutionThreshold: CGFloat = 0.08
+        let baumgarte: CGFloat = 0.12
+        let gravitySupport = gravityForce * max(0, fallAccelerationScale)
+        let effectiveMass = invMassSum > 0 ? (1 / invMassSum) : 0
+        let baseFriction = max(0, collisionFriction)
+        let slipperyActive = first.isSlippery || second.isSlippery
+        let stickyActive = first.isSticky || second.isSticky
+        let friction: CGFloat
+        if stickyActive {
+            friction = min(4.0, baseFriction * 2.8)
+        } else if slipperyActive {
+            friction = baseFriction * 0.08
+        } else {
+            friction = baseFriction
+        }
+        let hasRecentThrow = (throwCooldown[first.id] ?? 0) > 0 || (throwCooldown[second.id] ?? 0) > 0
+        let frictionScale: CGFloat = hasRecentThrow ? 0.25 : 1.0
+        let staticFriction = stickyActive ? min(6.0, friction * 1.6) : min(3.2, friction * 1.5)
+        let dynamicFriction = stickyActive ? min(4.5, friction * 1.15) : min(2.4, friction * 0.9)
+        let adjustedStatic = staticFriction * frictionScale
+        let adjustedDynamic = dynamicFriction * frictionScale
+        let stickyAdhesion: CGFloat = stickyActive ? 0.42 : 0
+
+        for contact in manifold.contacts.prefix(2) {
+            let rFirst = CGVector(
+                dx: contact.position.x - first.center.x,
+                dy: contact.position.y - first.center.y
+            )
+            let rSecond = CGVector(
+                dx: contact.position.x - second.center.x,
+                dy: contact.position.y - second.center.y
+            )
+
+            let velocityFirst = velocityAtContact(for: first, offset: rFirst)
+            let velocitySecond = velocityAtContact(for: second, offset: rSecond)
+            var relativeVelocity = CGVector(
+                dx: velocitySecond.dx - velocityFirst.dx,
+                dy: velocitySecond.dy - velocityFirst.dy
+            )
+
+            let velocityAlongNormal = dot(relativeVelocity, manifold.normal)
+            let restitution = abs(velocityAlongNormal) < restitutionThreshold ? 0 : restitutionBoost
             let rFirstCrossNormal = cross(rFirst, manifold.normal)
             let rSecondCrossNormal = cross(rSecond, manifold.normal)
             let denominator = invMassSum +
                 (rFirstCrossNormal * rFirstCrossNormal) * invInertiaFirst +
                 (rSecondCrossNormal * rSecondCrossNormal) * invInertiaSecond
 
-            if denominator > 0.000001 {
-                let restitutionBase = min(max(collisionRestitution, 0), 1)
-                let restitutionThreshold: CGFloat = 0.58
-                let restitution = abs(velocityAlongNormal) < restitutionThreshold ? 0 : restitutionBase
-                let impulseMagnitude = -(1 + restitution) * velocityAlongNormal / denominator * normalImpulseScale
-                let impulse = CGVector(
-                    dx: manifold.normal.dx * impulseMagnitude,
-                    dy: manifold.normal.dy * impulseMagnitude
-                )
+            if denominator <= 0.000001 { continue }
 
-                if invMassFirst > 0 {
-                    first.velocity.dx -= impulse.dx * invMassFirst
-                    first.velocity.dy -= impulse.dy * invMassFirst
-                    first.angularVelocity -= cross(rFirst, impulse) * invInertiaFirst * collisionAngularTransfer
-                }
-                if invMassSecond > 0 {
-                    second.velocity.dx += impulse.dx * invMassSecond
-                    second.velocity.dy += impulse.dy * invMassSecond
-                    second.angularVelocity += cross(rSecond, impulse) * invInertiaSecond * collisionAngularTransfer
-                }
+            let penetrationBias = max(contact.penetration - slop, 0) * (baumgarte / dt)
+            let impulseMagnitude = max(
+                0,
+                (-(1 + restitution) * velocityAlongNormal + penetrationBias) / denominator * normalImpulseScale
+            )
+            let impulse = CGVector(
+                dx: manifold.normal.dx * impulseMagnitude,
+                dy: manifold.normal.dy * impulseMagnitude
+            )
 
-                relativeVelocity = CGVector(
-                    dx: velocityAtContact(for: second, offset: rSecond).dx - velocityAtContact(for: first, offset: rFirst).dx,
-                    dy: velocityAtContact(for: second, offset: rSecond).dy - velocityAtContact(for: first, offset: rFirst).dy
-                )
+            if invMassFirst > 0 {
+                first.velocity.dx -= impulse.dx * invMassFirst
+                first.velocity.dy -= impulse.dy * invMassFirst
+                first.angularVelocity -= cross(rFirst, impulse) * invInertiaFirst * collisionAngularTransfer
+            }
+            if invMassSecond > 0 {
+                second.velocity.dx += impulse.dx * invMassSecond
+                second.velocity.dy += impulse.dy * invMassSecond
+                second.angularVelocity += cross(rSecond, impulse) * invInertiaSecond * collisionAngularTransfer
+            }
 
-                let tangentCandidate = CGVector(
-                    dx: relativeVelocity.dx - manifold.normal.dx * dot(relativeVelocity, manifold.normal),
-                    dy: relativeVelocity.dy - manifold.normal.dy * dot(relativeVelocity, manifold.normal)
-                )
-                let tangentLengthSquared = tangentCandidate.dx * tangentCandidate.dx + tangentCandidate.dy * tangentCandidate.dy
-                if tangentLengthSquared > 0.000001 {
-                    let tangentLength = sqrt(tangentLengthSquared)
-                    let tangent = CGVector(
-                        dx: tangentCandidate.dx / tangentLength,
-                        dy: tangentCandidate.dy / tangentLength
+            if stickyAdhesion > 0, velocityAlongNormal > 0, contact.penetration < 1.2 {
+                let adhesiveMax = stickyAdhesion * max(0.8, effectiveMass) * (1 + contact.penetration * 0.4)
+                let adhesiveMag = min(adhesiveMax, velocityAlongNormal / max(denominator, 0.0001))
+                if adhesiveMag > 0 {
+                    let adhesiveImpulse = CGVector(
+                        dx: -manifold.normal.dx * adhesiveMag,
+                        dy: -manifold.normal.dy * adhesiveMag
                     )
-
-                    let rFirstCrossTangent = cross(rFirst, tangent)
-                    let rSecondCrossTangent = cross(rSecond, tangent)
-                    let tangentDenominator = invMassSum +
-                        (rFirstCrossTangent * rFirstCrossTangent) * invInertiaFirst +
-                        (rSecondCrossTangent * rSecondCrossTangent) * invInertiaSecond
-
-                    if tangentDenominator > 0.000001 {
-                        let tangentVelocity = dot(relativeVelocity, tangent)
-                        var tangentImpulseMagnitude = -tangentVelocity / tangentDenominator
-                        let friction = max(0, collisionFriction)
-                        let staticFriction = friction * 1.25
-                        let dynamicFriction = friction * 0.9
-                        let staticLimit = abs(impulseMagnitude) * staticFriction
-                        if abs(tangentImpulseMagnitude) > staticLimit {
-                            let direction: CGFloat = tangentVelocity >= 0 ? 1 : -1
-                            tangentImpulseMagnitude = -direction * abs(impulseMagnitude) * dynamicFriction
-                        }
-                        let tangentImpulse = CGVector(
-                            dx: tangent.dx * tangentImpulseMagnitude,
-                            dy: tangent.dy * tangentImpulseMagnitude
-                        )
-
-                        if invMassFirst > 0 {
-                            first.velocity.dx -= tangentImpulse.dx * invMassFirst
-                            first.velocity.dy -= tangentImpulse.dy * invMassFirst
-                            first.angularVelocity -= cross(rFirst, tangentImpulse) * invInertiaFirst * collisionAngularTransfer
-                        }
-                        if invMassSecond > 0 {
-                            second.velocity.dx += tangentImpulse.dx * invMassSecond
-                            second.velocity.dy += tangentImpulse.dy * invMassSecond
-                            second.angularVelocity += cross(rSecond, tangentImpulse) * invInertiaSecond * collisionAngularTransfer
-                        }
+                    if invMassFirst > 0 {
+                        first.velocity.dx -= adhesiveImpulse.dx * invMassFirst
+                        first.velocity.dy -= adhesiveImpulse.dy * invMassFirst
+                    }
+                    if invMassSecond > 0 {
+                        second.velocity.dx += adhesiveImpulse.dx * invMassSecond
+                        second.velocity.dy += adhesiveImpulse.dy * invMassSecond
                     }
                 }
+            }
+
+            relativeVelocity = CGVector(
+                dx: velocityAtContact(for: second, offset: rSecond).dx - velocityAtContact(for: first, offset: rFirst).dx,
+                dy: velocityAtContact(for: second, offset: rSecond).dy - velocityAtContact(for: first, offset: rFirst).dy
+            )
+
+            let tangentCandidate = CGVector(
+                dx: relativeVelocity.dx - manifold.normal.dx * dot(relativeVelocity, manifold.normal),
+                dy: relativeVelocity.dy - manifold.normal.dy * dot(relativeVelocity, manifold.normal)
+            )
+            let tangentLengthSquared = tangentCandidate.dx * tangentCandidate.dx + tangentCandidate.dy * tangentCandidate.dy
+            if tangentLengthSquared <= 0.000001 { continue }
+
+            let tangentLength = sqrt(tangentLengthSquared)
+            let tangent = CGVector(
+                dx: tangentCandidate.dx / tangentLength,
+                dy: tangentCandidate.dy / tangentLength
+            )
+
+            let rFirstCrossTangent = cross(rFirst, tangent)
+            let rSecondCrossTangent = cross(rSecond, tangent)
+            let tangentDenominator = invMassSum +
+                (rFirstCrossTangent * rFirstCrossTangent) * invInertiaFirst +
+                (rSecondCrossTangent * rSecondCrossTangent) * invInertiaSecond
+
+            if tangentDenominator <= 0.000001 { continue }
+
+            let tangentVelocity = dot(relativeVelocity, tangent)
+            var tangentImpulseMagnitude = -tangentVelocity / tangentDenominator
+            let supportImpulse = max(impulseMagnitude, gravitySupport * effectiveMass)
+            let staticLimit = supportImpulse * adjustedStatic
+            if abs(tangentImpulseMagnitude) > staticLimit {
+                let direction: CGFloat = tangentVelocity >= 0 ? 1 : -1
+                tangentImpulseMagnitude = -direction * supportImpulse * adjustedDynamic
+            }
+
+            let tangentImpulse = CGVector(
+                dx: tangent.dx * tangentImpulseMagnitude,
+                dy: tangent.dy * tangentImpulseMagnitude
+            )
+
+            if invMassFirst > 0 {
+                first.velocity.dx -= tangentImpulse.dx * invMassFirst
+                first.velocity.dy -= tangentImpulse.dy * invMassFirst
+                first.angularVelocity -= cross(rFirst, tangentImpulse) * invInertiaFirst * collisionAngularTransfer
+            }
+            if invMassSecond > 0 {
+                second.velocity.dx += tangentImpulse.dx * invMassSecond
+                second.velocity.dy += tangentImpulse.dy * invMassSecond
+                second.angularVelocity += cross(rSecond, tangentImpulse) * invInertiaSecond * collisionAngularTransfer
             }
         }
 
@@ -2936,12 +3894,9 @@ final class WaveModel: ObservableObject {
         }
 
         if first.shape == .circle {
-            guard let manifold = polygonCircleCollisionManifold(polygon: second, circle: first) else { return nil }
-            return CollisionManifold(
-                normal: CGVector(dx: -manifold.normal.dx, dy: -manifold.normal.dy),
-                penetration: manifold.penetration,
-                contactPoint: manifold.contactPoint
-            )
+            guard var manifold = polygonCircleCollisionManifold(polygon: second, circle: first) else { return nil }
+            manifold.normal = CGVector(dx: -manifold.normal.dx, dy: -manifold.normal.dy)
+            return manifold
         }
 
         return polygonCollisionManifold(first, second)
@@ -2957,44 +3912,57 @@ final class WaveModel: ObservableObject {
             return nil
         }
 
-        let axes = polygonAxes(for: firstVertices) + polygonAxes(for: secondVertices)
-        if axes.isEmpty { return nil }
+        let separationA = maxSeparation(between: firstVertices, and: secondVertices)
+        if separationA.separation > 0 { return nil }
 
-        var minOverlap = CGFloat.greatestFiniteMagnitude
-        var bestAxis = CGVector(dx: 1, dy: 0)
+        let separationB = maxSeparation(between: secondVertices, and: firstVertices)
+        if separationB.separation > 0 { return nil }
 
-        for axis in axes {
-            let projectionFirst = projectedInterval(vertices: firstVertices, axis: axis)
-            let projectionSecond = projectedInterval(vertices: secondVertices, axis: axis)
-            let overlap = min(projectionFirst.max, projectionSecond.max) - max(projectionFirst.min, projectionSecond.min)
-            if overlap <= 0 {
-                return nil
-            }
-            if overlap < minOverlap {
-                minOverlap = overlap
-                bestAxis = axis
+        var referenceVertices = firstVertices
+        var incidentVertices = secondVertices
+        var referenceEdgeIndex = separationA.edgeIndex
+        var referenceNormal = separationA.normal
+        var flip = false
+
+        if separationB.separation > separationA.separation {
+            referenceVertices = secondVertices
+            incidentVertices = firstVertices
+            referenceEdgeIndex = separationB.edgeIndex
+            referenceNormal = separationB.normal
+            flip = true
+        }
+
+        let referenceV1 = referenceVertices[referenceEdgeIndex]
+        let referenceV2 = referenceVertices[(referenceEdgeIndex + 1) % referenceVertices.count]
+        let edge = CGVector(dx: referenceV2.x - referenceV1.x, dy: referenceV2.y - referenceV1.y)
+        let edgeLength = sqrt(edge.dx * edge.dx + edge.dy * edge.dy)
+        if edgeLength <= 0.000001 { return nil }
+
+        let tangent = CGVector(dx: edge.dx / edgeLength, dy: edge.dy / edgeLength)
+        let incidentEdge = incidentEdgeVertices(on: incidentVertices, withNormal: referenceNormal)
+        var clipped = [incidentEdge.start, incidentEdge.end]
+
+        let offset1 = dot(tangent, referenceV1)
+        clipped = clipSegmentToLine(clipped, normal: CGVector(dx: -tangent.dx, dy: -tangent.dy), offset: -offset1)
+        if clipped.count < 2 { return nil }
+
+        let offset2 = dot(tangent, referenceV2)
+        clipped = clipSegmentToLine(clipped, normal: tangent, offset: offset2)
+        if clipped.isEmpty { return nil }
+
+        var contacts: [ContactPoint] = []
+        contacts.reserveCapacity(2)
+        for point in clipped {
+            let separation = dot(referenceNormal, point) - dot(referenceNormal, referenceV1)
+            if separation <= 0 {
+                contacts.append(ContactPoint(position: point, penetration: -separation))
             }
         }
 
-        let centerDelta = CGVector(
-            dx: second.center.x - first.center.x,
-            dy: second.center.y - first.center.y
-        )
-        if dot(centerDelta, bestAxis) < 0 {
-            bestAxis = CGVector(dx: -bestAxis.dx, dy: -bestAxis.dy)
-        }
+        if contacts.isEmpty { return nil }
 
-        let firstSupport = supportPoint(vertices: firstVertices, direction: bestAxis)
-        let secondSupport = supportPoint(
-            vertices: secondVertices,
-            direction: CGVector(dx: -bestAxis.dx, dy: -bestAxis.dy)
-        )
-        let contact = CGPoint(
-            x: (firstSupport.x + secondSupport.x) * 0.5,
-            y: (firstSupport.y + secondSupport.y) * 0.5
-        )
-
-        return CollisionManifold(normal: bestAxis, penetration: minOverlap, contactPoint: contact)
+        let normal = flip ? CGVector(dx: -referenceNormal.dx, dy: -referenceNormal.dy) : referenceNormal
+        return CollisionManifold(normal: normal, contacts: contacts)
     }
 
     private func circleCollisionManifold(_ first: Body, _ second: Body) -> CollisionManifold? {
@@ -3015,7 +3983,7 @@ final class WaveModel: ObservableObject {
             x: first.center.x + normal.dx * (firstRadius - penetration * 0.5),
             y: first.center.y + normal.dy * (firstRadius - penetration * 0.5)
         )
-        return CollisionManifold(normal: normal, penetration: penetration, contactPoint: contact)
+        return CollisionManifold(normal: normal, contacts: [ContactPoint(position: contact, penetration: penetration)])
     }
 
     private func polygonCircleCollisionManifold(polygon: Body, circle: Body) -> CollisionManifold? {
@@ -3049,7 +4017,7 @@ final class WaveModel: ObservableObject {
         }
 
         let distance = sqrt(max(minDistanceSquared, 0.000001))
-        let normal: CGVector
+        var normal: CGVector
         if distance > 0.0001 {
             normal = CGVector(
                 dx: (center.x - closest.x) / distance,
@@ -3063,10 +4031,13 @@ final class WaveModel: ObservableObject {
             let fallbackLength = sqrt(max(fallback.dx * fallback.dx + fallback.dy * fallback.dy, 0.000001))
             normal = CGVector(dx: fallback.dx / fallbackLength, dy: fallback.dy / fallbackLength)
         }
+        if inside {
+            normal = CGVector(dx: -normal.dx, dy: -normal.dy)
+        }
 
         let penetration = inside ? (radius + distance) : (radius - distance)
         if penetration <= 0 { return nil }
-        return CollisionManifold(normal: normal, penetration: penetration, contactPoint: closest)
+        return CollisionManifold(normal: normal, contacts: [ContactPoint(position: closest, penetration: penetration)])
     }
 
     private func polygonAxes(for vertices: [CGPoint]) -> [CGVector] {
@@ -3086,6 +4057,104 @@ final class WaveModel: ObservableObject {
         }
 
         return axes
+    }
+
+    private struct SeparationResult {
+        let edgeIndex: Int
+        let separation: CGFloat
+        let normal: CGVector
+    }
+
+    private struct EdgeSegment {
+        let start: CGPoint
+        let end: CGPoint
+    }
+
+    private func polygonEdgeNormals(_ vertices: [CGPoint]) -> [CGVector] {
+        guard vertices.count > 1 else { return [] }
+        let isCCW = polygonSignedArea(vertices) >= 0
+        var normals: [CGVector] = []
+        normals.reserveCapacity(vertices.count)
+
+        for index in vertices.indices {
+            let nextIndex = (index + 1) % vertices.count
+            let edge = CGVector(
+                dx: vertices[nextIndex].x - vertices[index].x,
+                dy: vertices[nextIndex].y - vertices[index].y
+            )
+            let length = sqrt(edge.dx * edge.dx + edge.dy * edge.dy)
+            if length <= 0.000001 {
+                normals.append(CGVector(dx: 0, dy: 0))
+                continue
+            }
+            let nx = isCCW ? edge.dy / length : -edge.dy / length
+            let ny = isCCW ? -edge.dx / length : edge.dx / length
+            normals.append(CGVector(dx: nx, dy: ny))
+        }
+        return normals
+    }
+
+    private func maxSeparation(between first: [CGPoint], and second: [CGPoint]) -> SeparationResult {
+        let normals = polygonEdgeNormals(first)
+        var bestSeparation = -CGFloat.greatestFiniteMagnitude
+        var bestIndex = 0
+        var bestNormal = CGVector(dx: 1, dy: 0)
+
+        for index in normals.indices {
+            let normal = normals[index]
+            if normal.dx * normal.dx + normal.dy * normal.dy < 0.5 { continue }
+            let support = first[index]
+            var minProjection = CGFloat.greatestFiniteMagnitude
+            for vertex in second {
+                let projection = dot(normal, vertex)
+                if projection < minProjection {
+                    minProjection = projection
+                }
+            }
+            let separation = minProjection - dot(normal, support)
+            if separation > bestSeparation {
+                bestSeparation = separation
+                bestIndex = index
+                bestNormal = normal
+            }
+        }
+
+        return SeparationResult(edgeIndex: bestIndex, separation: bestSeparation, normal: bestNormal)
+    }
+
+    private func incidentEdgeVertices(on vertices: [CGPoint], withNormal normal: CGVector) -> EdgeSegment {
+        let normals = polygonEdgeNormals(vertices)
+        var minDot = CGFloat.greatestFiniteMagnitude
+        var index = 0
+        for i in normals.indices {
+            if normals[i].dx * normals[i].dx + normals[i].dy * normals[i].dy < 0.5 { continue }
+            let value = dot(normals[i], normal)
+            if value < minDot {
+                minDot = value
+                index = i
+            }
+        }
+        let start = vertices[index]
+        let end = vertices[(index + 1) % vertices.count]
+        return EdgeSegment(start: start, end: end)
+    }
+
+    private func clipSegmentToLine(_ points: [CGPoint], normal: CGVector, offset: CGFloat) -> [CGPoint] {
+        guard points.count == 2 else { return points }
+        let distance0 = dot(normal, points[0]) - offset
+        let distance1 = dot(normal, points[1]) - offset
+        var result: [CGPoint] = []
+        if distance0 <= 0 { result.append(points[0]) }
+        if distance1 <= 0 { result.append(points[1]) }
+        if distance0 * distance1 < 0 {
+            let t = distance0 / (distance0 - distance1)
+            let interpolated = CGPoint(
+                x: points[0].x + (points[1].x - points[0].x) * t,
+                y: points[0].y + (points[1].y - points[0].y) * t
+            )
+            result.append(interpolated)
+        }
+        return result
     }
 
     private func projectedInterval(vertices: [CGPoint], axis: CGVector) -> (min: CGFloat, max: CGFloat) {
@@ -3128,6 +4197,10 @@ final class WaveModel: ObservableObject {
         lhs.dx * rhs.dx + lhs.dy * rhs.dy
     }
 
+    private func dot(_ lhs: CGVector, _ rhs: CGPoint) -> CGFloat {
+        lhs.dx * rhs.x + lhs.dy * rhs.y
+    }
+
     private func cross(_ lhs: CGVector, _ rhs: CGVector) -> CGFloat {
         lhs.dx * rhs.dy - lhs.dy * rhs.dx
     }
@@ -3139,23 +4212,28 @@ final class WaveModel: ObservableObject {
         let minY = collisionRadius
         let maxY = max(minY, viewportSize.height - collisionRadius)
 
+        let bouncyBoost = min(max(bouncyRestitution, 0), 1.2)
+        let bounceX = body.isBouncy ? max(wallBounceX, bouncyBoost) : wallBounceX
+        let bounceTop = body.isBouncy ? max(wallBounceTop, bouncyBoost) : wallBounceTop
+        let bounceBottom = body.isBouncy ? max(wallBounceBottom, bouncyBoost) : wallBounceBottom
+
         if body.center.x < minX {
             body.center.x = minX
-            body.velocity.dx *= -wallBounceX
+            body.velocity.dx *= -bounceX
             body.angularVelocity *= 0.92
         } else if body.center.x > maxX {
             body.center.x = maxX
-            body.velocity.dx *= -wallBounceX
+            body.velocity.dx *= -bounceX
             body.angularVelocity *= 0.92
         }
 
         if body.center.y < minY {
             body.center.y = minY
-            body.velocity.dy *= -wallBounceTop
+            body.velocity.dy *= -bounceTop
             body.angularVelocity *= 0.9
         } else if body.center.y > maxY {
             body.center.y = maxY
-            body.velocity.dy *= -wallBounceBottom
+            body.velocity.dy *= -bounceBottom
             body.velocity.dx *= 0.95
             body.angularVelocity *= 0.89
         }
@@ -3176,7 +4254,9 @@ final class WaveModel: ObservableObject {
         var normalImpulse: CGFloat = 0
 
         if contactVelocity.dy > 0.0005 {
-            let restitution = min(max(landBounce, 0), 0.95)
+            let bouncyBoost = min(max(bouncyRestitution, 0), 1.2)
+            let baseBounce = min(max(landBounce, 0), 0.95)
+            let restitution = body.isBouncy ? min(0.95, max(baseBounce, bouncyBoost)) : baseBounce
             let normalDenominator = invMass + (r.dx * r.dx) * invInertia
             if normalDenominator > 0.000001 {
                 normalImpulse = (1 + restitution) * contactVelocity.dy / normalDenominator
@@ -3188,25 +4268,44 @@ final class WaveModel: ObservableObject {
             body.velocity.dy = min(body.velocity.dy, 0)
         }
 
-        let frictionCoefficient = min(max(landFriction, 0), 1.2)
+        let baseFriction = min(max(landFriction, 0), 2.0)
+        let frictionCoefficient: CGFloat
+        if body.isSticky {
+            frictionCoefficient = min(3.0, baseFriction * 2.6)
+        } else if body.isSlippery {
+            frictionCoefficient = baseFriction * 0.08
+        } else {
+            frictionCoefficient = baseFriction
+        }
         if frictionCoefficient > 0.0001 {
             let tangentDenominator = invMass + (r.dy * r.dy) * invInertia
             if tangentDenominator > 0.000001 {
                 var tangentImpulse = -contactVelocity.dx / tangentDenominator
                 let supportFactor = min(1.6, max(0.15, contact.supportWidth / max(20, bodyCharacteristicSize(for: body))))
-                let supportImpulse = max(normalImpulse, gravityForce * mass)
-                let frictionLimit = max(0.001, supportImpulse * frictionCoefficient * supportFactor)
+                let gravitySupport = gravityForce * max(0, fallAccelerationScale)
+                let supportImpulse = max(normalImpulse, gravitySupport * mass)
+                let tangentSpeed = abs(contactVelocity.dx)
+                let dynamicCoefficient = body.isSticky ? frictionCoefficient * 0.9 : frictionCoefficient * 0.8
+                var coefficient = tangentSpeed > 0.35 ? dynamicCoefficient : frictionCoefficient
+                if (throwCooldown[body.id] ?? 0) > 0 {
+                    coefficient *= 0.25
+                }
+                let frictionLimit = max(0.001, supportImpulse * coefficient * supportFactor)
                 tangentImpulse = min(max(tangentImpulse, -frictionLimit), frictionLimit)
                 body.velocity.dx += tangentImpulse * invMass
                 body.angularVelocity += (-r.dy * tangentImpulse) * invInertia
             }
         }
 
-        if contact.penetration < 0.8, abs(body.velocity.dy) < 0.05 {
+        if body.isSticky, abs(contactVelocity.dy) < 0.22 {
+            body.velocity.dy = min(body.velocity.dy, 0)
+        } else if contact.penetration < 0.8, abs(body.velocity.dy) < 0.05 {
             body.velocity.dy = 0
         }
 
-        if abs(body.velocity.dx) < 0.01 {
+        if body.isSticky, abs(body.velocity.dx) < 0.15 {
+            body.velocity.dx = 0
+        } else if !body.isSlippery, (throwCooldown[body.id] ?? 0) == 0, abs(body.velocity.dx) < 0.03 {
             body.velocity.dx = 0
         }
 
@@ -3214,8 +4313,38 @@ final class WaveModel: ObservableObject {
         if abs(contactVelocity.dy) < 0.24 {
             body.angularVelocity *= angularDamping
         }
+
+        let supportRatio = contact.supportWidth / max(1, bodyCharacteristicSize(for: body))
+        if supportRatio > 0.55 {
+            if abs(contactVelocity.dy) < 0.3 {
+                body.angularVelocity *= 0.5
+            }
+            if
+                abs(body.angularVelocity) < 0.05,
+                abs(body.velocity.dx) < 0.12,
+                abs(body.velocity.dy) < 0.12
+            {
+                if body.shape == .cube {
+                    let quarter = CGFloat.pi / 2
+                    let snapped = (body.angle / quarter).rounded() * quarter
+                    if abs(normalizedAngle(body.angle - snapped)) < 0.1 {
+                        body.angle = snapped
+                    }
+                }
+                body.angularVelocity = 0
+            }
+        }
         if abs(body.angularVelocity) < 0.0008 {
             body.angularVelocity = 0
+        }
+        if abs(body.velocity.dx) < 0.03 {
+            body.velocity.dx = 0
+        }
+        if abs(body.angularVelocity) < 0.002 {
+            body.angularVelocity = 0
+        }
+        if abs(body.velocity.dx) < 0.06, abs(contactVelocity.dy) < 0.06 {
+            body.velocity.dx = 0
         }
     }
 
@@ -3282,6 +4411,9 @@ final class WaveModel: ObservableObject {
             let currentBody = bodies[currentIndex]
 
             for weld in weldConstraints {
+                if wheelBodies.contains(weld.firstID) || wheelBodies.contains(weld.secondID) {
+                    continue
+                }
                 if weld.firstID == currentID, componentSet.contains(weld.secondID) {
                     let nextID = weld.secondID
                     guard !visited.contains(nextID), let nextIndex = bodyIndex(forID: nextID), bodies.indices.contains(nextIndex) else { continue }
@@ -3336,6 +4468,7 @@ final class WaveModel: ObservableObject {
             let rootOmega: CGFloat = draggingBodyIndex == rootIndex ? 0 : root.angularVelocity
 
             for index in indices where index != rootIndex {
+                if isWheelBody(index) { continue }
                 let r = CGVector(
                     dx: bodies[index].center.x - root.center.x,
                     dy: bodies[index].center.y - root.center.y
@@ -3344,43 +4477,7 @@ final class WaveModel: ObservableObject {
                     dx: root.velocity.dx - rootOmega * r.dy,
                     dy: root.velocity.dy + rootOmega * r.dx
                 )
-                if !isWheelBody(index) {
-                    bodies[index].angularVelocity = rootOmega
-                }
-            }
-
-            // For wheel bodies, lock translational velocity to welded host anchor velocity.
-            for weld in weldConstraints {
-                let wheelID: UUID
-                let hostID: UUID
-                let hostAnchorLocal: CGPoint
-                if wheelBodies.contains(weld.firstID), !wheelBodies.contains(weld.secondID) {
-                    wheelID = weld.firstID
-                    hostID = weld.secondID
-                    hostAnchorLocal = weld.secondLocalAnchor
-                } else if wheelBodies.contains(weld.secondID), !wheelBodies.contains(weld.firstID) {
-                    wheelID = weld.secondID
-                    hostID = weld.firstID
-                    hostAnchorLocal = weld.firstLocalAnchor
-                } else {
-                    continue
-                }
-
-                guard
-                    componentIDs.contains(wheelID),
-                    componentIDs.contains(hostID),
-                    let wheelIndex = bodyIndex(forID: wheelID),
-                    let hostIndex = bodyIndex(forID: hostID),
-                    bodies.indices.contains(wheelIndex),
-                    bodies.indices.contains(hostIndex)
-                else {
-                    continue
-                }
-
-                let host = bodies[hostIndex]
-                let anchor = worldPoint(fromLocal: hostAnchorLocal, in: host)
-                let hostOffset = CGVector(dx: anchor.x - host.center.x, dy: anchor.y - host.center.y)
-                bodies[wheelIndex].velocity = velocityAtContact(for: host, offset: hostOffset)
+                bodies[index].angularVelocity = rootOmega
             }
             return
         }
@@ -3480,69 +4577,65 @@ final class WaveModel: ObservableObject {
     private func resolveWheelPinnedCenters() {
         guard !wheelBodies.isEmpty else { return }
 
+        var hostWheelMap: [UUID: [(wheelID: UUID, wheelIndex: Int, anchorLocal: CGPoint)]] = [:]
+
         for weld in weldConstraints {
-            let wheelID: UUID
-            let hostID: UUID
-            let hostAnchorLocal: CGPoint
             if wheelBodies.contains(weld.firstID), !wheelBodies.contains(weld.secondID) {
-                wheelID = weld.firstID
-                hostID = weld.secondID
-                hostAnchorLocal = weld.secondLocalAnchor
+                if let wheelIndex = bodyIndex(forID: weld.firstID) {
+                    hostWheelMap[weld.secondID, default: []].append(
+                        (wheelID: weld.firstID, wheelIndex: wheelIndex, anchorLocal: weld.secondLocalAnchor)
+                    )
+                }
             } else if wheelBodies.contains(weld.secondID), !wheelBodies.contains(weld.firstID) {
-                wheelID = weld.secondID
-                hostID = weld.firstID
-                hostAnchorLocal = weld.firstLocalAnchor
-            } else {
-                continue
+                if let wheelIndex = bodyIndex(forID: weld.secondID) {
+                    hostWheelMap[weld.firstID, default: []].append(
+                        (wheelID: weld.secondID, wheelIndex: wheelIndex, anchorLocal: weld.firstLocalAnchor)
+                    )
+                }
             }
+        }
 
-            guard
-                let wheelIndex = bodyIndex(forID: wheelID),
-                let hostIndex = bodyIndex(forID: hostID),
-                bodies.indices.contains(wheelIndex),
-                bodies.indices.contains(hostIndex)
-            else {
-                continue
-            }
-
-            var wheel = bodies[wheelIndex]
+        for (hostID, wheels) in hostWheelMap {
+            guard let hostIndex = bodyIndex(forID: hostID), bodies.indices.contains(hostIndex) else { continue }
             var host = bodies[hostIndex]
             let dragHost = draggingBodyIndex == hostIndex
-            let dragWheel = draggingBodyIndex == wheelIndex
 
-            let anchor = worldPoint(fromLocal: hostAnchorLocal, in: host)
-            let error = CGVector(dx: wheel.center.x - anchor.x, dy: wheel.center.y - anchor.y)
+            var sumError = CGVector.zero
+            var validCount: CGFloat = 0
 
-            // Keep translation welded, allow only wheel rotation to stay free.
-            if !dragHost {
-                let hostCarry: CGFloat = dragWheel ? 0.22 : 0.92
-                host.center.x += error.dx * hostCarry
-                host.center.y += error.dy * hostCarry
+            for item in wheels {
+                guard bodies.indices.contains(item.wheelIndex) else { continue }
+                let wheel = bodies[item.wheelIndex]
+                let anchor = worldPoint(fromLocal: item.anchorLocal, in: host)
+                sumError.dx += wheel.center.x - anchor.x
+                sumError.dy += wheel.center.y - anchor.y
+                validCount += 1
             }
 
-            let updatedAnchor = worldPoint(fromLocal: hostAnchorLocal, in: host)
-            if !dragWheel {
-                wheel.center.x = updatedAnchor.x
-                wheel.center.y = updatedAnchor.y
+            guard validCount > 0 else { continue }
+            let avgError = CGVector(dx: sumError.dx / validCount, dy: sumError.dy / validCount)
+            let positionBeta: CGFloat = wheels.count > 1 ? 0.85 : 0.9
+
+            if dragHost {
+                for item in wheels {
+                    guard bodies.indices.contains(item.wheelIndex) else { continue }
+                    var wheel = bodies[item.wheelIndex]
+                    let anchor = worldPoint(fromLocal: item.anchorLocal, in: host)
+                    wheel.center = anchor
+                    wheel.velocity = host.velocity
+                    bodies[item.wheelIndex] = wheel
+                }
+            } else {
+                host.center.x += avgError.dx * positionBeta
+                host.center.y += avgError.dy * positionBeta
+                if wheels.count > 1 {
+                    host.angularVelocity *= 0.4
+                    if abs(host.angularVelocity) < 0.001 {
+                        host.angularVelocity = 0
+                    }
+                }
             }
 
-            let hostOffset = CGVector(dx: updatedAnchor.x - host.center.x, dy: updatedAnchor.y - host.center.y)
-            let hostPointVelocity = velocityAtContact(for: host, offset: hostOffset)
-            let relativeVelocity = CGVector(
-                dx: wheel.velocity.dx - hostPointVelocity.dx,
-                dy: wheel.velocity.dy - hostPointVelocity.dy
-            )
-
-            if !dragWheel {
-                wheel.velocity.dx -= relativeVelocity.dx * 0.32
-                wheel.velocity.dy -= relativeVelocity.dy * 0.32
-            }
-            if !dragHost {
-                host.velocity.dx += relativeVelocity.dx * 0.86
-                host.velocity.dy += relativeVelocity.dy * 0.86
-            }
-
-            bodies[wheelIndex] = wheel
             bodies[hostIndex] = host
         }
     }
@@ -3707,6 +4800,30 @@ final class WaveModel: ObservableObject {
         syncBodyDrawStates()
     }
 
+    private func handleBounceSelection(at location: CGPoint) {
+        guard let targetIndex = bodyIndex(containing: location), bodies.indices.contains(targetIndex) else { return }
+        bodies[targetIndex].isBouncy.toggle()
+        syncBodyDrawStates()
+    }
+
+    private func handleSlipSelection(at location: CGPoint) {
+        guard let targetIndex = bodyIndex(containing: location), bodies.indices.contains(targetIndex) else { return }
+        bodies[targetIndex].isSlippery.toggle()
+        if bodies[targetIndex].isSlippery {
+            bodies[targetIndex].isSticky = false
+        }
+        syncBodyDrawStates()
+    }
+
+    private func handleStickySelection(at location: CGPoint) {
+        guard let targetIndex = bodyIndex(containing: location), bodies.indices.contains(targetIndex) else { return }
+        bodies[targetIndex].isSticky.toggle()
+        if bodies[targetIndex].isSticky {
+            bodies[targetIndex].isSlippery = false
+        }
+        syncBodyDrawStates()
+    }
+
     private func canonicalizeWheelWelds(for wheelID: UUID) {
         guard let wheelIndex = bodyIndex(forID: wheelID), bodies.indices.contains(wheelIndex) else { return }
         let wheelCenter = bodies[wheelIndex].center
@@ -3774,19 +4891,13 @@ final class WaveModel: ObservableObject {
         return 1 - t * (1 - pointerSuppressionMin)
     }
 
-    private func isSceneCalm() -> Bool {
-        if activity > 0.008 { return false }
-        if pointerStrength > 0.004 { return false }
-        if draggingBodyIndex != nil { return false }
-        if surfaceSpread > 0.9 { return false }
-
-        for body in bodies {
-            if abs(body.velocity.dx) > 0.04 { return false }
-            if abs(body.velocity.dy) > 0.04 { return false }
-            if abs(body.angularVelocity) > 0.0025 { return false }
-        }
-
-        return true
+    private func physicsSubsteps() -> Int {
+        guard !bodies.isEmpty else { return 1 }
+        let maxSpeed = bodies.map { hypot($0.velocity.dx, $0.velocity.dy) }.max() ?? 0
+        let speedSteps = Int(ceil(maxSpeed / 5))
+        let densitySteps = bodies.count > 18 ? 2 : 1
+        let result = max(1, max(speedSteps, densitySteps))
+        return min(6, result)
     }
 
     private func limitedDisplacement(_ value: CGFloat) -> CGFloat {
@@ -3940,9 +5051,9 @@ final class WaveModel: ObservableObject {
         guard bodies.indices.contains(index) else { return false }
         let body = bodies[index]
 
-        if abs(body.velocity.dx) > 0.055 { return false }
-        if abs(body.velocity.dy) > 0.07 { return false }
-        if abs(body.angularVelocity) > 0.0045 { return false }
+        if abs(body.velocity.dx) > 0.12 { return false }
+        if abs(body.velocity.dy) > 0.12 { return false }
+        if abs(body.angularVelocity) > 0.01 { return false }
 
         if groundContactInfo(for: body) != nil {
             return true
@@ -3990,10 +5101,60 @@ final class WaveModel: ObservableObject {
         return CGPoint(x: clampedX, y: clampedY)
     }
 
+    private func clampedDragCenter(_ point: CGPoint, for body: Body) -> CGPoint {
+        var adjusted = clampedBodyCenter(point, for: body)
+        guard sceneLocation == .land, viewportSize.width > 1, viewportSize.height > 1 else { return adjusted }
+        let groundY = surfaceBaselineY(in: viewportSize)
+        var temp = body
+        temp.center = adjusted
+        let bottom = bodyBottomY(temp)
+        if bottom > groundY {
+            adjusted.y -= (bottom - groundY)
+        }
+        return clampedBodyCenter(adjusted, for: temp)
+    }
+
     private func clampAllBodiesInside() {
         for index in bodies.indices {
             bodies[index].center = clampedBodyCenter(bodies[index].center, for: bodies[index])
         }
+    }
+
+    private func bodyBounds(_ body: Body) -> CGRect {
+        switch body.shape {
+        case .circle:
+            let r = circleRadius
+            return CGRect(x: body.center.x - r, y: body.center.y - r, width: r * 2, height: r * 2)
+        case .cube, .polygon:
+            guard let vertices = bodyWorldVertices(for: body, forCollision: false), !vertices.isEmpty else {
+                let r = boundingRadius(for: body)
+                return CGRect(x: body.center.x - r, y: body.center.y - r, width: r * 2, height: r * 2)
+            }
+            let minX = vertices.map(\.x).min() ?? body.center.x
+            let maxX = vertices.map(\.x).max() ?? body.center.x
+            let minY = vertices.map(\.y).min() ?? body.center.y
+            let maxY = vertices.map(\.y).max() ?? body.center.y
+            return CGRect(x: minX, y: minY, width: max(1, maxX - minX), height: max(1, maxY - minY))
+        }
+    }
+
+    private func updateSelectionRect(to point: CGPoint, additive: Bool) {
+        guard let start = selectionDragStart else { return }
+        let minX = min(start.x, point.x)
+        let minY = min(start.y, point.y)
+        let maxX = max(start.x, point.x)
+        let maxY = max(start.y, point.y)
+        let rect = CGRect(x: minX, y: minY, width: max(1, maxX - minX), height: max(1, maxY - minY))
+        selectionRect = rect
+
+        var nextSelection: Set<UUID> = additive ? selectedBodyIDs : []
+        for body in bodies {
+            if rect.intersects(bodyBounds(body)) {
+                nextSelection.insert(body.id)
+            }
+        }
+        selectedBodyIDs = nextSelection
+        syncBodyDrawStates()
     }
 
     private func syncBodyDrawStates() {
@@ -4010,7 +5171,11 @@ final class WaveModel: ObservableObject {
                     center: body.center,
                     angle: body.angle,
                     localVertices: body.localVertices,
-                    isWheel: wheelBodies.contains(body.id)
+                    isWheel: wheelBodies.contains(body.id),
+                    isSelected: selectedBodyIDs.contains(body.id),
+                    isBouncy: body.isBouncy,
+                    isSlippery: body.isSlippery,
+                    isSticky: body.isSticky
                 )
             )
         }
@@ -4049,7 +5214,10 @@ final class WaveModel: ObservableObject {
             angularVelocity: 0,
             localVertices: localVertices,
             collisionVertices: collisionVertices,
-            collisionVertexCap: collisionVertexCap
+            collisionVertexCap: collisionVertexCap,
+            isBouncy: false,
+            isSlippery: false,
+            isSticky: false
         )
     }
 
@@ -4132,6 +5300,8 @@ final class WaveModel: ObservableObject {
         bodies.append(body)
         recordSpawn(body.id)
         clampAllBodiesInside()
+        syncBodyDrawStates()
+        syncWeldPreviewPoints()
     }
 
     private func rebuildCollisionMeshes() {
@@ -4145,7 +5315,10 @@ final class WaveModel: ObservableObject {
             guard collisionSource.count >= 3 else { continue }
             let cap = max(3, bodies[index].collisionVertexCap > 0 ? bodies[index].collisionVertexCap : min(collisionSource.count, 18))
             let budget = collisionVertexBudget(localCount: collisionSource.count, cap: cap)
-            let reduced = budget >= collisionSource.count ? collisionSource : decimatePolygonVertices(collisionSource, targetMaxCount: budget)
+            var reduced = budget >= collisionSource.count ? collisionSource : decimatePolygonVertices(collisionSource, targetMaxCount: budget)
+            if polygonSignedArea(reduced) < 0 {
+                reduced.reverse()
+            }
             bodies[index].collisionVertices = reduced
             changed = true
         }

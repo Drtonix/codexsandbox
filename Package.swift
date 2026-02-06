@@ -4,13 +4,13 @@
 import PackageDescription
 
 let package = Package(
-    name: "WaveKeyboardApp",
+    name: "SlopSandbox",
     platforms: [
         .macOS(.v12)
     ],
     targets: [
         .executableTarget(
-            name: "WaveKeyboardApp"
+            name: "SlopSandbox"
         ),
     ]
 )

@@ -1,0 +1,206 @@
+[
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/aabb.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/aabb.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/aabb.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/aabb.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/arena_allocator.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/arena_allocator.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/arena_allocator.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/arena_allocator.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/array.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/array.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/array.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/array.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/bitset.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/bitset.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/bitset.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/bitset.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/body.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/body.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/body.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/body.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/broad_phase.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/broad_phase.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/broad_phase.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/broad_phase.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/constraint_graph.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/constraint_graph.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/constraint_graph.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/constraint_graph.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/contact.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/contact.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/contact.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/contact.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/contact_solver.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/contact_solver.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/contact_solver.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/contact_solver.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/core.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/core.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/core.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/core.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/distance.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/distance.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/distance.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/distance.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/distance_joint.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/distance_joint.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/distance_joint.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/distance_joint.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/dynamic_tree.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/dynamic_tree.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/dynamic_tree.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/dynamic_tree.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/geometry.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/geometry.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/geometry.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/geometry.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/hull.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/hull.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/hull.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/hull.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/id_pool.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/id_pool.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/id_pool.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/id_pool.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/island.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/island.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/island.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/island.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/joint.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/joint.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/joint.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/joint.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/manifold.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/manifold.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/manifold.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/manifold.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/math_functions.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/math_functions.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/math_functions.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/math_functions.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/motor_joint.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/motor_joint.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/motor_joint.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/motor_joint.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/mover.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/mover.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/mover.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/mover.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/physics_world.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/physics_world.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/physics_world.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/physics_world.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/prismatic_joint.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/prismatic_joint.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/prismatic_joint.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/prismatic_joint.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/revolute_joint.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/revolute_joint.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/revolute_joint.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/revolute_joint.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/sensor.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/sensor.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/sensor.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/sensor.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/shape.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/shape.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/shape.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/shape.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/solver.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/solver.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/solver.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/solver.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/solver_set.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/solver_set.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/solver_set.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/solver_set.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/table.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/table.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/table.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/table.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/timer.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/timer.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/timer.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/timer.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/types.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/types.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/types.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/types.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/weld_joint.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/weld_joint.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/weld_joint.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/weld_joint.c.o"
+},
+{
+  "directory": "/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src",
+  "command": "/usr/bin/cc  -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/../include\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/build/third_party/box2d/src\" -I\"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src\" -O3 -DNDEBUG -std=gnu17 -fvisibility=hidden -ffp-contract=off -Wmissing-prototypes -Wall -Wextra -pedantic -o CMakeFiles/box2d.dir/wheel_joint.c.o -c \"/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/wheel_joint.c\"",
+  "file": "/Users/tonix/Documents/New project/SlopSandboxCpp/third_party/box2d/src/wheel_joint.c",
+  "output": "third_party/box2d/src/CMakeFiles/box2d.dir/wheel_joint.c.o"
+}
+]

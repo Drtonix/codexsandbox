@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/SlopSandboxCpp.dir/src/main.cpp.o -o SlopSandboxCpp  third_party/raylib/raylib/libraylib.a third_party/box2d/src/libbox2d.a -framework Cocoa -framework IOKit -framework CoreVideo -framework OpenGL -framework Cocoa -framework IOKit -framework CoreFoundation

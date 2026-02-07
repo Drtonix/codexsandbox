@@ -1959,6 +1959,7 @@ final class WaveModel: ObservableObject {
     private var draggingBodyIndex: Int?
     private var dragTargetCenter: CGPoint?
     private var dragAnchorLocal: CGPoint = .zero
+    private var dragLockedAngle: CGFloat?
     private var lastDragCenter: CGPoint?
     private var lastDragTimestamp: TimeInterval?
     private var recentDragVelocity: CGVector = .zero
@@ -2555,6 +2556,7 @@ final class WaveModel: ObservableObject {
         draggingBodyIndex = nil
         dragTargetCenter = nil
         dragAnchorLocal = .zero
+        dragLockedAngle = nil
         lastDragCenter = nil
         lastDragTimestamp = nil
         recentDragVelocity = .zero
@@ -2708,6 +2710,7 @@ final class WaveModel: ObservableObject {
                 self.draggingBodyIndex = nil
                 dragTargetCenter = nil
                 dragAnchorLocal = .zero
+                dragLockedAngle = nil
                 lastDragCenter = nil
                 lastDragTimestamp = nil
                 recentDragVelocity = .zero
@@ -2777,6 +2780,7 @@ final class WaveModel: ObservableObject {
 
         if let draggingBodyIndex, indices.contains(draggingBodyIndex), bodies.indices.contains(draggingBodyIndex) {
             dragTargetCenter = bodies[draggingBodyIndex].center
+            dragLockedAngle = bodies[draggingBodyIndex].angle
         }
 
         clampAllBodiesInside()
@@ -2806,20 +2810,24 @@ final class WaveModel: ObservableObject {
 
     private func applyAngularDelta(_ deltaAngle: CGFloat, toComponentContaining targetIndex: Int, zeroAngularVelocity: Bool) {
         let component = weldedComponentIndices(containing: targetIndex)
-        let pivot = bodies[targetIndex].center
+        let draggingTarget = draggingBodyIndex == targetIndex
+        let pivot: CGPoint
+        if draggingTarget, bodies.indices.contains(targetIndex) {
+            pivot = worldPoint(fromLocal: dragAnchorLocal, in: bodies[targetIndex])
+        } else {
+            pivot = bodies[targetIndex].center
+        }
         let cosA = cos(deltaAngle)
         let sinA = sin(deltaAngle)
 
         for index in component where bodies.indices.contains(index) {
             var body = bodies[index]
-            if index != targetIndex {
-                let dx = body.center.x - pivot.x
-                let dy = body.center.y - pivot.y
-                body.center = CGPoint(
-                    x: pivot.x + dx * cosA - dy * sinA,
-                    y: pivot.y + dx * sinA + dy * cosA
-                )
-            }
+            let dx = body.center.x - pivot.x
+            let dy = body.center.y - pivot.y
+            body.center = CGPoint(
+                x: pivot.x + dx * cosA - dy * sinA,
+                y: pivot.y + dx * sinA + dy * cosA
+            )
             body.angle = normalizedAngle(body.angle + deltaAngle)
             if zeroAngularVelocity {
                 body.angularVelocity = 0
@@ -2834,6 +2842,7 @@ final class WaveModel: ObservableObject {
 
         if let draggingBodyIndex, draggingBodyIndex == targetIndex, bodies.indices.contains(targetIndex) {
             dragTargetCenter = bodies[targetIndex].center
+            dragLockedAngle = bodies[targetIndex].angle
         }
 
         clampAllBodiesInside()
@@ -2929,7 +2938,6 @@ final class WaveModel: ObservableObject {
     private func shouldUseBox2DInLand() -> Bool {
         sceneLocation == .land
             && cubeCollisionEnabled
-            && wheelBodies.isEmpty
     }
 
     func registerKeyPress() {
@@ -3008,11 +3016,17 @@ final class WaveModel: ObservableObject {
                 self.draggingBodyIndex = nil
                 dragTargetCenter = nil
                 dragAnchorLocal = .zero
+                dragLockedAngle = nil
                 destroyBox2DDragJoint()
                 return
             }
 
             var body = bodies[draggingBodyIndex]
+            if let dragLockedAngle {
+                body.angle = dragLockedAngle
+            } else {
+                dragLockedAngle = body.angle
+            }
             let target = dragCenterTarget(for: body, pointerLocation: location)
             let useBox2DDrag = shouldUseBox2DInLand() && !isTimeFrozen
             let clamped = isTimeFrozen
@@ -3271,6 +3285,7 @@ final class WaveModel: ObservableObject {
                 let center = bodies[index].center
                 dragTargetCenter = center
                 dragAnchorLocal = localPoint(fromWorld: location, in: bodies[index])
+                dragLockedAngle = bodies[index].angle
                 lastDragCenter = center
                 lastDragTimestamp = timestamp
                 recentDragVelocity = .zero
@@ -3367,6 +3382,7 @@ final class WaveModel: ObservableObject {
                 draggingBodyIndex = nil
                 dragTargetCenter = nil
                 dragAnchorLocal = .zero
+                dragLockedAngle = nil
                 lastDragCenter = nil
                 lastDragTimestamp = nil
                 recentDragVelocity = .zero
@@ -3380,6 +3396,7 @@ final class WaveModel: ObservableObject {
                 draggingBodyIndex = nil
                 dragTargetCenter = nil
                 dragAnchorLocal = .zero
+                dragLockedAngle = nil
                 lastDragCenter = nil
                 lastDragTimestamp = nil
                 recentDragVelocity = .zero
@@ -3434,6 +3451,7 @@ final class WaveModel: ObservableObject {
             draggingBodyIndex = nil
             dragTargetCenter = nil
             dragAnchorLocal = .zero
+            dragLockedAngle = nil
             lastDragCenter = nil
             lastDragTimestamp = nil
             recentDragVelocity = .zero
@@ -4204,6 +4222,7 @@ final class WaveModel: ObservableObject {
             draggingBodyIndex = nil
             dragTargetCenter = nil
             dragAnchorLocal = .zero
+            dragLockedAngle = nil
             destroyBox2DDragJoint()
         }
         selectionMoveActive = false
@@ -4825,7 +4844,11 @@ final class WaveModel: ObservableObject {
             let velocityScale = box2DVelocityScale
 
             bodies[index].center = fromBox2DPoint(p)
-            bodies[index].angle = normalizedAngle(CGFloat(atan2(Double(r.s), Double(r.c))))
+            if let draggingBodyIndex, index == draggingBodyIndex, let dragLockedAngle {
+                bodies[index].angle = normalizedAngle(dragLockedAngle)
+            } else {
+                bodies[index].angle = normalizedAngle(CGFloat(atan2(Double(r.s), Double(r.c))))
+            }
             bodies[index].velocity = CGVector(dx: CGFloat(v.x) / velocityScale, dy: CGFloat(v.y) / velocityScale)
             bodies[index].angularVelocity = CGFloat(w) / velocityScale
         }
@@ -4904,16 +4927,14 @@ final class WaveModel: ObservableObject {
 
             let point = fromBox2DPoint(hit.point)
             let normalAB = CGVector(dx: CGFloat(hit.normal.x), dy: CGFloat(hit.normal.y))
-            var approachSpeed = max(0, CGFloat(hit.approachSpeed) / max(box2DVelocityScale, 0.0001))
+            let approachSpeed = max(0, CGFloat(hit.approachSpeed) / max(box2DVelocityScale, 0.0001))
             if approachSpeed <= 0.001 { continue }
             if
                 let draggedBodyID,
                 idA == draggedBodyID || idB == draggedBodyID
             {
-                // Ignore low-energy micro collisions generated by drag correction.
-                if approachSpeed < 1.15 { continue }
-                approachSpeed = (approachSpeed - 1.0) * 0.35
-                if approachSpeed <= 0.001 { continue }
+                // Ignore drag-induced contacts completely.
+                continue
             }
 
             var bodyA: Body?
@@ -5378,9 +5399,10 @@ final class WaveModel: ObservableObject {
 
         if isDragged {
             let targetCenter = dragTargetCenter ?? body.center
+            let targetAngle = dragLockedAngle ?? body.angle
             var targetTransform = b2Transform()
             targetTransform.p = toBox2DPoint(targetCenter)
-            targetTransform.q = b2MakeRot(Float(body.angle))
+            targetTransform.q = b2MakeRot(Float(targetAngle))
 
             // Drive the body directly towards the cursor each physics step.
             // This gives predictable drag behavior without freezing interactions.
@@ -5390,13 +5412,12 @@ final class WaveModel: ObservableObject {
                 Float(physicsStep),
                 true
             )
-            b2Body_SetAngularVelocity(bodyId, 0)
             destroyBox2DDragJoint()
             b2Body_SetBullet(bodyId, true)
             b2Body_SetLinearDamping(bodyId, body.isSticky ? 0.95 : (body.shape == .circle ? 0.0007 : 0.01))
             b2Body_SetAngularDamping(
                 bodyId,
-                body.shape == .circle ? (body.isSticky ? 0.08 : 0.00005) : (body.isSticky ? 0.82 : 0.04)
+                body.shape == .circle ? (body.isSticky ? 0.16 : 0.02) : (body.isSticky ? 1.2 : 0.16)
             )
             b2Body_SetAwake(bodyId, true)
             return
@@ -5755,18 +5776,18 @@ final class WaveModel: ObservableObject {
 
             let overlapReference = max(1, min(supportBounds.width, otherBounds.width))
             let overlapRatio = overlap / overlapReference
-            if overlapRatio < 0.2 { continue }
+            if overlapRatio < 0.33 { continue }
 
             let verticalGap = supportBounds.minY - otherBounds.maxY
-            if verticalGap < -0.8 || verticalGap > contactTolerance { continue }
+            if verticalGap < -0.25 || verticalGap > contactTolerance { continue }
             let maxPenetration = bodyCollisionManifold(support, other)?
                 .contacts
                 .map(\.penetration)
                 .max() ?? 0
-            if maxPenetration <= max(0.01, collisionSlop * 0.35) {
-                // Ignore hover/near-hover to prevent phantom damage while holding objects.
+            if maxPenetration <= max(0.06, collisionSlop * 0.9) {
+                // Ignore hover/near-hover and light brush contacts.
                 let relativePressSpeed = other.velocity.dy - support.velocity.dy
-                if relativePressSpeed <= 0.22 {
+                if relativePressSpeed <= 0.8 || verticalGap > 0.04 {
                     continue
                 }
             }
@@ -6852,7 +6873,7 @@ final class WaveModel: ObservableObject {
         if hasWheelInComponent {
             guard let rootIndex = nonWheelRootIndex(for: indices) else { return }
             let root = bodies[rootIndex]
-            let rootOmega: CGFloat = draggingBodyIndex == rootIndex ? 0 : root.angularVelocity
+            let rootOmega: CGFloat = root.angularVelocity
 
             for index in indices where index != rootIndex {
                 if isWheelBody(index) { continue }
@@ -6870,9 +6891,8 @@ final class WaveModel: ObservableObject {
         }
 
         if let draggingBodyIndex, indices.contains(draggingBodyIndex), bodies.indices.contains(draggingBodyIndex) {
-            bodies[draggingBodyIndex].angularVelocity = 0
             let root = bodies[draggingBodyIndex]
-            let rootOmega: CGFloat = 0
+            let rootOmega: CGFloat = root.angularVelocity
             for index in indices where index != draggingBodyIndex {
                 let r = CGVector(
                     dx: bodies[index].center.x - root.center.x,
@@ -6883,7 +6903,7 @@ final class WaveModel: ObservableObject {
                     dy: root.velocity.dy + rootOmega * r.dx
                 )
                 if !isWheelBody(index), !isWheelBodyID(root.id) {
-                    bodies[index].angularVelocity = 0
+                    bodies[index].angularVelocity = rootOmega
                 }
             }
             return
@@ -6987,6 +7007,7 @@ final class WaveModel: ObservableObject {
             guard let hostIndex = bodyIndex(forID: hostID), bodies.indices.contains(hostIndex) else { continue }
             var host = bodies[hostIndex]
             let dragHost = draggingBodyIndex == hostIndex
+            let draggedWheelIndex = draggingBodyIndex
 
             var sumError = CGVector.zero
             var validCount: CGFloat = 0
@@ -7002,7 +7023,7 @@ final class WaveModel: ObservableObject {
 
             guard validCount > 0 else { continue }
             let avgError = CGVector(dx: sumError.dx / validCount, dy: sumError.dy / validCount)
-            let positionBeta: CGFloat = wheels.count > 1 ? 0.85 : 0.9
+            let positionBeta: CGFloat = wheels.count > 1 ? 0.9 : 0.94
 
             if dragHost {
                 for item in wheels {
@@ -7010,7 +7031,11 @@ final class WaveModel: ObservableObject {
                     var wheel = bodies[item.wheelIndex]
                     let anchor = worldPoint(fromLocal: item.anchorLocal, in: host)
                     wheel.center = anchor
-                    wheel.velocity = host.velocity
+                    let r = CGVector(dx: anchor.x - host.center.x, dy: anchor.y - host.center.y)
+                    wheel.velocity = CGVector(
+                        dx: host.velocity.dx - host.angularVelocity * r.dy,
+                        dy: host.velocity.dy + host.angularVelocity * r.dx
+                    )
                     bodies[item.wheelIndex] = wheel
                 }
             } else {
@@ -7022,6 +7047,30 @@ final class WaveModel: ObservableObject {
                         host.angularVelocity = 0
                     }
                 }
+                bodies[hostIndex] = host
+
+                // Keep wheel axes rigidly attached to host anchors.
+                for item in wheels {
+                    guard bodies.indices.contains(item.wheelIndex) else { continue }
+                    if let draggedWheelIndex, item.wheelIndex == draggedWheelIndex {
+                        continue
+                    }
+                    var wheel = bodies[item.wheelIndex]
+                    let anchor = worldPoint(fromLocal: item.anchorLocal, in: host)
+                    wheel.center = anchor
+                    let r = CGVector(dx: anchor.x - host.center.x, dy: anchor.y - host.center.y)
+                    let anchorVelocity = CGVector(
+                        dx: host.velocity.dx - host.angularVelocity * r.dy,
+                        dy: host.velocity.dy + host.angularVelocity * r.dx
+                    )
+                    // Blend wheel center velocity towards host anchor velocity to prevent drift.
+                    wheel.velocity = CGVector(
+                        dx: wheel.velocity.dx * 0.12 + anchorVelocity.dx * 0.88,
+                        dy: wheel.velocity.dy * 0.12 + anchorVelocity.dy * 0.88
+                    )
+                    bodies[item.wheelIndex] = wheel
+                }
+                continue
             }
 
             bodies[hostIndex] = host

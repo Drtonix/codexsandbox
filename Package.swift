@@ -9,8 +9,19 @@ let package = Package(
         .macOS(.v12)
     ],
     targets: [
+        .target(
+            name: "CBox2D",
+            path: "Vendor/box2d",
+            sources: ["src"],
+            publicHeadersPath: "include",
+            cSettings: [
+                .headerSearchPath("include"),
+                .headerSearchPath("src")
+            ]
+        ),
         .executableTarget(
-            name: "SlopSandbox"
+            name: "SlopSandbox",
+            dependencies: ["CBox2D"]
         ),
     ]
 )

@@ -34,14 +34,19 @@ struct WaveScreen: View {
                         let waterChunks = wave.waterChunkDrawStates
                         let glassShards = wave.glassShardDrawStates
                         let thrusterParticles = wave.thrusterParticleDrawStates
+                        let stickyDrips = wave.stickyDripParticleDrawStates
                         let hasWaterSurface = wave.sceneLocation == .water
                         guard samples.count > 1 else { return }
 
                         let pixelStep: CGFloat = {
                             guard wave.pixelationEnabled else { return 1 }
                             let grid = min(max(wave.pixelationGrid, 32), 256)
-                            let scaleBase = max(size.width, size.height)
-                            return max(1, round(scaleBase / grid))
+                            // Map resolution slider to on-screen pixel block size
+                            // without destroying scene readability.
+                            // grid=256 -> 1, grid=32 -> ~10
+                            let t = (256 - grid) / (256 - 32)
+                            let block = 1 + t * 9
+                            return max(1, round(block))
                         }()
                         func pixelSnap(_ value: CGFloat) -> CGFloat {
                             guard pixelStep > 1 else { return value }
@@ -55,13 +60,13 @@ struct WaveScreen: View {
                         var path = Path()
                         path.move(to: pixelSnap(CGPoint(x: 0, y: centerY)))
 
-                        let step: CGFloat = wave.pixelationEnabled ? max(4, pixelStep) : 4
+                        let step: CGFloat = wave.pixelationEnabled ? max(2, pixelStep * 0.5) : 4
                         let width = max(size.width, 1)
                         let sampleCount = samples.count
-                        let bodyStrokeWidth: CGFloat = wave.pixelationEnabled ? max(1.4, pixelStep * 0.24) : 2.5
-                        let selectionStrokeWidth: CGFloat = wave.pixelationEnabled ? max(2.4, pixelStep * 0.44) : 4.5
+                        let bodyStrokeWidth: CGFloat = wave.pixelationEnabled ? max(1.0, round(pixelStep * 0.35)) : 2.5
+                        let selectionStrokeWidth: CGFloat = wave.pixelationEnabled ? max(2.0, round(pixelStep * 0.55)) : 4.5
                         let selectionDash: [CGFloat] = wave.pixelationEnabled
-                            ? [max(3, pixelStep * 0.7), max(2, pixelStep * 0.45)]
+                            ? [max(3, round(pixelStep * 0.8)), max(2, round(pixelStep * 0.5))]
                             : [6, 4]
 
                         for x in stride(from: CGFloat(0), through: size.width, by: step) {
@@ -114,11 +119,11 @@ struct WaveScreen: View {
 
                         let glassTint: (CGFloat, CGFloat, CGFloat) = wave.theme == .dark ? (1, 1, 1) : (0, 0, 0)
                         let featureColors: [(key: (WaveModel.BodyDrawState) -> Bool, color: (CGFloat, CGFloat, CGFloat))] = [
-                            ({ $0.isBouncy }, (0.25, 0.95, 0.45)),
-                            ({ $0.isSlippery }, (0.2, 0.75, 1.0)),
-                            ({ $0.isSticky }, (1.0, 0.85, 0.2)),
+                            ({ $0.isBouncy }, (0.33, 0.88, 0.52)),
+                            ({ $0.isSlippery }, (0.39, 0.68, 0.97)),
+                            ({ $0.isSticky }, (0.96, 0.76, 0.25)),
                             ({ $0.isGlass }, glassTint),
-                            ({ $0.isThruster }, (1.0, 0.22, 0.2))
+                            ({ $0.isThruster }, (0.94, 0.34, 0.31))
                         ]
 
                         func blendedFeatureColor(for body: WaveModel.BodyDrawState) -> Color? {
@@ -397,6 +402,39 @@ struct WaveScreen: View {
                                 )
                                 context.fill(Path(ellipseIn: glowRect), with: .color(glow))
                                 context.fill(Path(ellipseIn: coreRect), with: .color(core))
+                            }
+                        }
+
+                        if !stickyDrips.isEmpty {
+                            for drop in stickyDrips {
+                                let dropColor = Color(
+                                    .sRGB,
+                                    red: 0.95,
+                                    green: 0.8,
+                                    blue: 0.3,
+                                    opacity: drop.opacity * 0.96
+                                )
+                                let glowColor = Color(
+                                    .sRGB,
+                                    red: 1.0,
+                                    green: 0.88,
+                                    blue: 0.38,
+                                    opacity: drop.opacity * 0.36
+                                )
+                                let glowRect = CGRect(
+                                    x: drop.center.x - drop.radius * 1.65,
+                                    y: drop.center.y - drop.radius * (1.5 + drop.elongation * 0.46),
+                                    width: drop.radius * 3.3,
+                                    height: drop.radius * (3.05 + drop.elongation * 0.72)
+                                )
+                                let coreRect = CGRect(
+                                    x: drop.center.x - drop.radius * 0.63,
+                                    y: drop.center.y - drop.radius * (0.6 + drop.elongation * 0.26),
+                                    width: drop.radius * 1.26,
+                                    height: drop.radius * (1.23 + drop.elongation * 0.58)
+                                )
+                                context.fill(Path(ellipseIn: glowRect), with: .color(glowColor))
+                                context.fill(Path(ellipseIn: coreRect), with: .color(dropColor))
                             }
                         }
 
@@ -776,6 +814,73 @@ struct WaveControlsPanel: View {
         "\(base) (\(key))"
     }
 
+    private var languageHeaderLabel: String {
+        // User request: show the language label in the opposite locale.
+        wave.language == .en ? "Язык" : "Lang"
+    }
+
+    private var isEnglishBinding: Binding<Bool> {
+        Binding(
+            get: { wave.language == .en },
+            set: { wave.language = $0 ? .en : .ru }
+        )
+    }
+
+    private var isLightThemeBinding: Binding<Bool> {
+        Binding(
+            get: { wave.theme == .light },
+            set: { wave.theme = $0 ? .light : .dark }
+        )
+    }
+
+    private var isCursorModeActive: Bool {
+        wave.drawingTool == .none
+            && !wave.weldToolEnabled
+            && !wave.wheelToolEnabled
+            && !wave.bounceToolEnabled
+            && !wave.slipToolEnabled
+            && !wave.stickyToolEnabled
+            && !wave.glassToolEnabled
+            && !wave.thrusterToolEnabled
+    }
+
+    private func quickTabLabel(_ tab: WaveModel.QuickPanelTab) -> String {
+        switch tab {
+        case .objects:
+            return tr("Объекты", "Objects")
+        case .instruments:
+            return tr("Инструменты", "Tools")
+        case .effects:
+            return tr("Эффекты", "Effects")
+        }
+    }
+
+    private func activeInstrumentLabel() -> String {
+        if wave.weldToolEnabled { return labeled(tr("Сварка", "Weld"), key: "2") }
+        if wave.wheelToolEnabled { return labeled(tr("Колесо", "Wheel"), key: "3") }
+        if wave.thrusterToolEnabled { return labeled(tr("Толкатель", "Thruster"), key: "4") }
+        if wave.bounceToolEnabled { return labeled(tr("Прыгучесть", "Bounce"), key: "5") }
+        if wave.slipToolEnabled { return labeled(tr("Скользкость", "Slip"), key: "6") }
+        if wave.stickyToolEnabled { return labeled(tr("Липкость", "Sticky"), key: "7") }
+        if wave.glassToolEnabled { return labeled(tr("Стеклянность", "Glass"), key: "8") }
+        return labeled(tr("Курсор", "Cursor"), key: "1")
+    }
+
+    private func activeObjectLabel() -> String {
+        switch wave.drawingTool {
+        case .none:
+            return labeled(tr("Нет", "Off"), key: "1")
+        case .quadrilateral:
+            return labeled(tr("4-угольник", "Quad"), key: "R")
+        case .ellipse:
+            return labeled(tr("Окружность", "Circle"), key: "T")
+        case .triangle:
+            return labeled(tr("Треугольник", "Triangle"), key: "Y")
+        case .freeform:
+            return labeled(tr("Рисунок", "Drawing"), key: "U")
+        }
+    }
+
     private func drawingToolLabel(_ tool: WaveModel.DrawingTool) -> String {
         switch tool {
         case .none:
@@ -787,7 +892,7 @@ struct WaveControlsPanel: View {
         case .triangle:
             return labeled(tr("Треугольник", "Triangle"), key: "Y")
         case .freeform:
-            return labeled(tr("Рисунок [эксп]", "Drawing [exp]"), key: "U")
+            return labeled(tr("Рисунок", "Drawing"), key: "U")
         }
     }
 
@@ -855,216 +960,63 @@ struct WaveControlsPanel: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Spacer()
                     Text("FPS \(Int(wave.fps.rounded()))")
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(wave.accentColor.opacity(0.7))
                         .shadow(color: Color.black.opacity(0.35), radius: 1, x: 0, y: 1)
+                    Spacer()
                     panelButton(tr("По умолчанию", "Defaults"), isActive: true) {
                         wave.resetAll()
                     }
                 }
 
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 120), spacing: 8, alignment: .leading)],
-                    alignment: .leading,
-                    spacing: 8
-                ) {
+                HStack(spacing: 8) {
                     panelButton(tr("Сброс Сцены", "Reset Scene")) {
                         wave.resetScene()
                     }
-                    panelButton(labeled(tr("Куб", "Cube"), key: "Q")) {
-                        wave.addCube()
-                    }
-                    panelButton(labeled(tr("Шар", "Ball"), key: "W")) {
-                        wave.addCircle()
-                    }
-                    panelButton(labeled(tr("Треугольник", "Triangle"), key: "E")) {
-                        wave.addTriangle()
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    LazyVGrid(
-                        columns: [GridItem(.adaptive(minimum: 120), spacing: 8, alignment: .leading)],
-                        alignment: .leading,
-                        spacing: 8
+                    panelButton(
+                        wave.isTimeFrozen
+                            ? labeled(tr("Продолжить", "Resume"), key: "Space")
+                            : labeled(tr("Заморозка", "Freeze"), key: "Space"),
+                        isActive: wave.isTimeFrozen
                     ) {
-                        if wave.drawingTool == .none, !wave.weldToolEnabled, !wave.wheelToolEnabled, !wave.bounceToolEnabled, !wave.slipToolEnabled, !wave.stickyToolEnabled, !wave.glassToolEnabled, !wave.thrusterToolEnabled {
-                            panelButton(labeled(tr("Курсор: Вкл", "Cursor: On"), key: "1"), isActive: true) {
-                                wave.selectCursorTool()
-                            }
-                        } else {
-                            panelButton(labeled(tr("Курсор", "Cursor"), key: "1")) {
-                                wave.selectCursorTool()
-                            }
-                        }
-
-                        if wave.weldToolEnabled {
-                            panelButton(labeled(tr("Сварка: Вкл", "Weld: On"), key: "2"), isActive: true) {
-                                wave.toggleWeldTool()
-                            }
-                        } else {
-                            panelButton(labeled(tr("Сварка", "Weld"), key: "2")) {
-                                wave.toggleWeldTool()
-                            }
-                        }
-
-                        if wave.wheelToolEnabled {
-                            panelButton(labeled(tr("Колесо: Вкл", "Wheel: On"), key: "3"), isActive: true) {
-                                wave.toggleWheelTool()
-                            }
-                        } else {
-                            panelButton(labeled(tr("Колесо", "Wheel"), key: "3")) {
-                                wave.toggleWheelTool()
-                            }
-                        }
-
-                        if wave.bounceToolEnabled {
-                            panelButton(labeled(tr("Прыгучесть: Вкл", "Bounce: On"), key: "4"), isActive: true) {
-                                wave.toggleBounceTool()
-                            }
-                        } else {
-                            panelButton(labeled(tr("Прыгучесть", "Bounce"), key: "4")) {
-                                wave.toggleBounceTool()
-                            }
-                        }
-
-                        if wave.slipToolEnabled {
-                            panelButton(labeled(tr("Скользкость: Вкл", "Slip: On"), key: "5"), isActive: true) {
-                                wave.toggleSlipTool()
-                            }
-                        } else {
-                            panelButton(labeled(tr("Скользкость", "Slip"), key: "5")) {
-                                wave.toggleSlipTool()
-                            }
-                        }
-
-                        if wave.stickyToolEnabled {
-                            panelButton(labeled(tr("Липкость: Вкл", "Sticky: On"), key: "6"), isActive: true) {
-                                wave.toggleStickyTool()
-                            }
-                        } else {
-                            panelButton(labeled(tr("Липкость", "Sticky"), key: "6")) {
-                                wave.toggleStickyTool()
-                            }
-                        }
-
-                        if wave.glassToolEnabled {
-                            panelButton(labeled(tr("Стеклянность: Вкл", "Glass: On"), key: "7"), isActive: true) {
-                                wave.toggleGlassTool()
-                            }
-                        } else {
-                            panelButton(labeled(tr("Стеклянность", "Glass"), key: "7")) {
-                                wave.toggleGlassTool()
-                            }
-                        }
-
-                        if wave.thrusterToolEnabled {
-                            panelButton(labeled(tr("Толкатель: Вкл", "Thruster: On"), key: "8"), isActive: true) {
-                                wave.toggleThrusterTool()
-                            }
-                        } else {
-                            panelButton(labeled(tr("Толкатель", "Thruster"), key: "8")) {
-                                wave.toggleThrusterTool()
-                            }
-                        }
-
+                        wave.toggleTimeFrozen()
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                    Text(tr("F: вкл/выкл тягу блока под курсором", "F: toggle thruster on hovered block"))
-                        .font(.caption2)
-                        .foregroundStyle(wave.accentColor.opacity(0.68))
-
-                    let toolText = wave.weldToolEnabled
-                        ? tr("Инструмент: Сварка", "Tool: Weld")
-                        : wave.wheelToolEnabled
-                            ? tr("Инструмент: Колесо", "Tool: Wheel")
-                            : wave.bounceToolEnabled
-                                ? tr("Инструмент: Прыгучесть", "Tool: Bounce")
-                                : wave.slipToolEnabled
-                                    ? tr("Инструмент: Скользкость", "Tool: Slip")
-                                    : wave.stickyToolEnabled
-                                        ? tr("Инструмент: Липкость", "Tool: Sticky")
-                                        : wave.glassToolEnabled
-                                            ? tr("Инструмент: Стекло", "Tool: Glass")
-                                            : wave.thrusterToolEnabled
-                                                ? tr("Инструмент: Толкатель", "Tool: Thruster")
-                                            : tr("Инструмент: Нет", "Tool: None")
-                    Text(toolText)
-                        .font(.caption2)
-                        .foregroundStyle(wave.accentColor.opacity(0.7))
-                        .shadow(color: Color.black.opacity(0.4), radius: 1, x: 0, y: 1)
                 }
 
-                Picker(tr("Локация", "Location"), selection: $wave.sceneLocation) {
-                    Text(sceneLocationLabel(.water)).tag(WaveModel.SceneLocation.water)
-                    Text(sceneLocationLabel(.land)).tag(WaveModel.SceneLocation.land)
-                }
-                .pickerStyle(.segmented)
+                HStack(alignment: .top, spacing: 12) {
+                    VStack(spacing: 5) {
+                        Text(languageHeaderLabel)
+                            .font(.caption2)
+                            .lineLimit(1)
+                            .foregroundStyle(wave.accentColor.opacity(0.8))
+                        Toggle("", isOn: isEnglishBinding)
+                            .labelsHidden()
+                            .toggleStyle(GlassSwitchStyle(accent: wave.accentColor, isDarkTheme: wave.theme == .dark))
+                    }
+                    .frame(maxWidth: .infinity)
 
-                HStack {
-                Text(labeled(tr("Произвольные Объекты", "Freeform Objects"), key: "R/T/Y/U"))
-                    .font(.caption2)
-                    .foregroundStyle(wave.accentColor.opacity(0.85))
-                    .shadow(color: Color.black.opacity(0.35), radius: 1, x: 0, y: 1)
-                    Spacer()
-                    Text(tr("Shift: Ровно", "Shift: Constrain"))
-                        .font(.caption2)
-                        .foregroundStyle(wave.accentColor.opacity(0.6))
-                        .shadow(color: Color.black.opacity(0.35), radius: 1, x: 0, y: 1)
-                }
+                    VStack(spacing: 5) {
+                        Text(tr("Тема", "Theme"))
+                            .font(.caption2)
+                            .lineLimit(1)
+                            .foregroundStyle(wave.accentColor.opacity(0.8))
+                        Toggle("", isOn: isLightThemeBinding)
+                            .labelsHidden()
+                            .toggleStyle(GlassSwitchStyle(accent: wave.accentColor, isDarkTheme: wave.theme == .dark))
+                    }
+                    .frame(maxWidth: .infinity)
 
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 130), spacing: 6, alignment: .leading)],
-                    alignment: .leading,
-                    spacing: 6
-                ) {
-                    drawingToolButton(.none)
-                    drawingToolButton(.quadrilateral)
-                    drawingToolButton(.ellipse)
-                    drawingToolButton(.triangle)
-                    drawingToolButton(.freeform)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                panelButton(
-                    wave.isTimeFrozen
-                        ? labeled(tr("Продолжить Время", "Resume Time"), key: "Space")
-                        : labeled(tr("Заморозить Время", "Freeze Time"), key: "Space"),
-                    isActive: wave.isTimeFrozen
-                ) {
-                    wave.toggleTimeFrozen()
-                }
-
-                HStack(spacing: 10) {
-                    Text(tr("Язык", "Language"))
-                        .font(.caption2)
-                        .foregroundStyle(wave.accentColor.opacity(0.85))
-                    Spacer()
-                    LanguageToggle(language: $wave.language, accentColor: wave.accentColor, isDarkTheme: wave.theme == .dark)
-                }
-
-                HStack(spacing: 10) {
-                    Text(tr("Тема", "Theme"))
-                        .font(.caption2)
-                        .foregroundStyle(wave.accentColor.opacity(0.85))
-                        .shadow(color: Color.black.opacity(0.35), radius: 1, x: 0, y: 1)
-                    Spacer()
-                    ThemeToggle(theme: $wave.theme, accentColor: wave.accentColor, language: wave.language, isDarkTheme: wave.theme == .dark)
-                }
-
-                HStack(spacing: 10) {
-                    Text(tr("Пикселизация", "Pixelation"))
-                        .font(.caption2)
-                        .foregroundStyle(wave.accentColor.opacity(0.85))
-                        .shadow(color: Color.black.opacity(0.35), radius: 1, x: 0, y: 1)
-                    Spacer()
-                    Toggle("", isOn: $wave.pixelationEnabled)
-                        .labelsHidden()
-                        .toggleStyle(GlassSwitchStyle(accent: wave.accentColor, isDarkTheme: wave.theme == .dark))
+                    VStack(spacing: 5) {
+                        Text(tr("Пикс", "Pix"))
+                            .font(.caption2)
+                            .lineLimit(1)
+                            .foregroundStyle(wave.accentColor.opacity(0.8))
+                        Toggle("", isOn: $wave.pixelationEnabled)
+                            .labelsHidden()
+                            .toggleStyle(GlassSwitchStyle(accent: wave.accentColor, isDarkTheme: wave.theme == .dark))
+                    }
+                    .frame(maxWidth: .infinity)
                 }
                 if wave.pixelationEnabled {
                     ControlSlider(
@@ -1075,6 +1027,121 @@ struct WaveControlsPanel: View {
                         format: "%.0f",
                         accentColor: wave.accentColor
                     )
+                }
+
+                Picker(tr("Локация", "Location"), selection: $wave.sceneLocation) {
+                    Text(sceneLocationLabel(.water)).tag(WaveModel.SceneLocation.water)
+                    Text(sceneLocationLabel(.land)).tag(WaveModel.SceneLocation.land)
+                }
+                .pickerStyle(.segmented)
+
+                HStack(spacing: 8) {
+                    ForEach(WaveModel.QuickPanelTab.allCases) { tab in
+                        panelButton(quickTabLabel(tab), isActive: wave.quickPanelTab == tab) {
+                            wave.quickPanelTab = tab
+                        }
+                    }
+                }
+
+                Group {
+                    switch wave.quickPanelTab {
+                    case .objects:
+                        LazyVGrid(
+                            columns: [GridItem(.adaptive(minimum: 120), spacing: 8, alignment: .leading)],
+                            alignment: .leading,
+                            spacing: 8
+                        ) {
+                            panelButton(labeled(tr("Нет", "Off"), key: "1"), isActive: isCursorModeActive) {
+                                wave.selectCursorTool()
+                            }
+                            panelButton(labeled(tr("Куб", "Cube"), key: "Q")) {
+                                wave.addCube()
+                            }
+                            panelButton(labeled(tr("Шар", "Ball"), key: "W")) {
+                                wave.addCircle()
+                            }
+                            panelButton(labeled(tr("Треугольник", "Triangle"), key: "E")) {
+                                wave.addTriangle()
+                            }
+                            panelButton(labeled(tr("4-угольник", "Quad"), key: "R"), isActive: wave.drawingTool == .quadrilateral) {
+                                wave.toggleDrawingTool(.quadrilateral)
+                            }
+                            panelButton(labeled(tr("Окружность", "Circle"), key: "T"), isActive: wave.drawingTool == .ellipse) {
+                                wave.toggleDrawingTool(.ellipse)
+                            }
+                            panelButton(labeled(tr("Треугольник", "Triangle"), key: "Y"), isActive: wave.drawingTool == .triangle) {
+                                wave.toggleDrawingTool(.triangle)
+                            }
+                            panelButton(labeled(tr("Рисунок", "Drawing"), key: "U"), isActive: wave.drawingTool == .freeform) {
+                                wave.toggleDrawingTool(.freeform)
+                            }
+                        }
+
+                    case .instruments:
+                        LazyVGrid(
+                            columns: [GridItem(.adaptive(minimum: 120), spacing: 8, alignment: .leading)],
+                            alignment: .leading,
+                            spacing: 8
+                        ) {
+                            panelButton(labeled(tr("Курсор", "Cursor"), key: "1"), isActive: isCursorModeActive) {
+                                wave.selectCursorTool()
+                            }
+                            panelButton(labeled(tr("Сварка", "Weld"), key: "2"), isActive: wave.weldToolEnabled) {
+                                wave.toggleWeldTool()
+                            }
+                            panelButton(labeled(tr("Колесо", "Wheel"), key: "3"), isActive: wave.wheelToolEnabled) {
+                                wave.toggleWheelTool()
+                            }
+                            panelButton(labeled(tr("Толкатель", "Thruster"), key: "4"), isActive: wave.thrusterToolEnabled) {
+                                wave.toggleThrusterTool()
+                            }
+                        }
+                        Text(tr("F: вкл/выкл тягу блока под курсором", "F: toggle hovered thruster"))
+                            .font(.caption2)
+                            .foregroundStyle(wave.accentColor.opacity(0.68))
+
+                    case .effects:
+                        LazyVGrid(
+                            columns: [GridItem(.adaptive(minimum: 120), spacing: 8, alignment: .leading)],
+                            alignment: .leading,
+                            spacing: 8
+                        ) {
+                            panelButton(labeled(tr("Прыгучесть", "Bounce"), key: "5"), isActive: wave.bounceToolEnabled) {
+                                wave.toggleBounceTool()
+                            }
+                            panelButton(labeled(tr("Скользкость", "Slip"), key: "6"), isActive: wave.slipToolEnabled) {
+                                wave.toggleSlipTool()
+                            }
+                            panelButton(labeled(tr("Липкость", "Sticky"), key: "7"), isActive: wave.stickyToolEnabled) {
+                                wave.toggleStickyTool()
+                            }
+                            panelButton(labeled(tr("Стеклянность", "Glass"), key: "8"), isActive: wave.glassToolEnabled) {
+                                wave.toggleGlassTool()
+                            }
+                        }
+                    }
+                }
+
+                if wave.quickPanelTab == .objects {
+                    HStack {
+                        Spacer()
+                        Text(tr("Shift: Ровно", "Shift: Constrain"))
+                            .font(.caption2)
+                            .foregroundStyle(wave.accentColor.opacity(0.6))
+                            .shadow(color: Color.black.opacity(0.35), radius: 1, x: 0, y: 1)
+                    }
+                }
+
+                HStack(spacing: 12) {
+                    Text("\(tr("Инструмент", "Tool")): \(activeInstrumentLabel())")
+                        .font(.caption2)
+                        .foregroundStyle(wave.accentColor.opacity(0.7))
+                        .shadow(color: Color.black.opacity(0.4), radius: 1, x: 0, y: 1)
+                    Spacer()
+                    Text("\(tr("Объект", "Object")): \(activeObjectLabel())")
+                        .font(.caption2)
+                        .foregroundStyle(wave.accentColor.opacity(0.7))
+                        .shadow(color: Color.black.opacity(0.4), radius: 1, x: 0, y: 1)
                 }
 
                 ControlSlider(
@@ -1429,7 +1496,7 @@ struct GlassSwitchStyle: ToggleStyle {
                     .shadow(color: Color.black.opacity(isDarkTheme ? 0.4 : 0.2), radius: 2, x: 0, y: 1)
                     .padding(2)
             }
-            .frame(width: 44, height: 24)
+            .frame(width: 38, height: 20)
         }
         .buttonStyle(.plain)
         .animation(.easeInOut(duration: 0.15), value: configuration.isOn)
@@ -1456,6 +1523,14 @@ final class WaveModel: ObservableObject {
     enum SceneLocation: String, CaseIterable, Identifiable {
         case water
         case land
+
+        var id: String { rawValue }
+    }
+
+    enum QuickPanelTab: String, CaseIterable, Identifiable {
+        case objects
+        case instruments
+        case effects
 
         var id: String { rawValue }
     }
@@ -1515,6 +1590,14 @@ final class WaveModel: ObservableObject {
         let heat: CGFloat
     }
 
+    struct StickyDripParticleDrawState: Identifiable {
+        let id: UUID
+        let center: CGPoint
+        let radius: CGFloat
+        let opacity: CGFloat
+        let elongation: CGFloat
+    }
+
     private struct Body {
         let id: UUID
         var shape: BodyShape
@@ -1565,6 +1648,16 @@ final class WaveModel: ObservableObject {
         var heat: CGFloat
     }
 
+    private struct StickyDripParticle {
+        let id: UUID
+        var center: CGPoint
+        var velocity: CGVector
+        var radius: CGFloat
+        var age: CGFloat
+        var life: CGFloat
+        var elongation: CGFloat
+    }
+
     private struct GlassShatterRequest {
         let id: UUID
         let point: CGPoint
@@ -1577,6 +1670,28 @@ final class WaveModel: ObservableObject {
         let point: CGPoint
         let normal: CGVector
         let sourceVelocity: CGVector
+    }
+
+    private struct StickyLatchKey: Hashable {
+        let firstID: UUID
+        let secondID: UUID
+
+        init(_ firstID: UUID, _ secondID: UUID) {
+            if firstID.uuidString <= secondID.uuidString {
+                self.firstID = firstID
+                self.secondID = secondID
+            } else {
+                self.firstID = secondID
+                self.secondID = firstID
+            }
+        }
+    }
+
+    private struct StickyLatch {
+        var firstLocalAnchor: CGPoint
+        var secondLocalAnchor: CGPoint
+        var timeLeft: CGFloat
+        var strength: CGFloat
     }
 
     private struct DragSample {
@@ -1644,6 +1759,7 @@ final class WaveModel: ObservableObject {
     private(set) var waterChunkDrawStates: [WaterChunkDrawState] = []
     private(set) var glassShardDrawStates: [GlassShardDrawState] = []
     private(set) var thrusterParticleDrawStates: [ThrusterParticleDrawState] = []
+    private(set) var stickyDripParticleDrawStates: [StickyDripParticleDrawState] = []
     @Published private(set) var selectionRect: CGRect?
     @Published var sceneLocation: SceneLocation = .land {
         didSet {
@@ -1658,6 +1774,7 @@ final class WaveModel: ObservableObject {
             }
         }
     }
+    @Published var quickPanelTab: QuickPanelTab = .objects
     @Published var language: AppLanguage
     @Published var theme: AppTheme
     @Published var pixelationEnabled: Bool = false
@@ -1943,6 +2060,7 @@ final class WaveModel: ObservableObject {
     private let thrusterMaxUpSpeed: CGFloat = 6.2
     private let thrusterLateralDamping: CGFloat = 0.22
     private let thrusterParticleMaxCount: Int = 480
+    private let stickyDripParticleMaxCount: Int = 120
     private var box2DPointsPerMeter: CGFloat { max(0.0001, 1.0 / box2DMetersPerPoint) }
     private var box2DVelocityScale: CGFloat { max(0.0001, box2DMetersPerPoint / physicsStep) }
     private var box2DAccelerationScale: CGFloat {
@@ -1989,11 +2107,13 @@ final class WaveModel: ObservableObject {
     private var waterChunks: [WaterChunk] = []
     private var glassShards: [GlassShard] = []
     private var thrusterParticles: [ThrusterParticle] = []
+    private var stickyDripParticles: [StickyDripParticle] = []
     private var pendingGlassShatters: [UUID: GlassShatterRequest] = [:]
     private var glassDamage: [UUID: CGFloat] = [:]
     private var glassImpactInput: [UUID: CGFloat] = [:]
     private var glassBreakContact: [UUID: GlassBreakContact] = [:]
     private var glassGraceFrames: [UUID: Int] = [:]
+    private var stickyLatches: [StickyLatchKey: StickyLatch] = [:]
     private var box2DWorldId: b2WorldId = b2_nullWorldId
     private var box2DGroundBodyId: b2BodyId = b2_nullBodyId
     private var box2DBodyMap: [UUID: b2BodyId] = [:]
@@ -2224,6 +2344,8 @@ final class WaveModel: ObservableObject {
         weldToolEnabled = false
         wheelToolEnabled = false
         bounceToolEnabled = false
+        slipToolEnabled = false
+        stickyToolEnabled = false
         glassToolEnabled = false
         thrusterToolEnabled = false
         resetScene()
@@ -2235,6 +2357,16 @@ final class WaveModel: ObservableObject {
 
     func toggleTimeFrozen() {
         isTimeFrozen.toggle()
+    }
+
+    func cycleQuickPanelTab() {
+        let tabs = QuickPanelTab.allCases
+        guard !tabs.isEmpty else { return }
+        guard let index = tabs.firstIndex(of: quickPanelTab) else {
+            quickPanelTab = tabs[0]
+            return
+        }
+        quickPanelTab = tabs[(index + 1) % tabs.count]
     }
 
     func handleKeyDown(_ event: NSEvent) -> Bool {
@@ -2256,6 +2388,12 @@ final class WaveModel: ObservableObject {
             return true
         }
 
+        let isSceneReset = event.keyCode == 8 || raw == "c"
+        if isSceneReset {
+            resetScene()
+            return true
+        }
+
         if raw == "1" {
             selectCursorTool()
             return true
@@ -2266,6 +2404,7 @@ final class WaveModel: ObservableObject {
             weldToolEnabled = true
             wheelToolEnabled = false
             bounceToolEnabled = false
+            thrusterToolEnabled = false
             return true
         }
 
@@ -2274,6 +2413,7 @@ final class WaveModel: ObservableObject {
             weldToolEnabled = false
             wheelToolEnabled = true
             bounceToolEnabled = false
+            thrusterToolEnabled = false
             return true
         }
 
@@ -2281,27 +2421,33 @@ final class WaveModel: ObservableObject {
             drawingTool = .none
             weldToolEnabled = false
             wheelToolEnabled = false
-            bounceToolEnabled.toggle()
+            bounceToolEnabled = false
+            thrusterToolEnabled.toggle()
             return true
         }
 
         if raw == "5" {
-            toggleSlipTool()
+            toggleBounceTool()
             return true
         }
 
         if raw == "6" {
-            toggleStickyTool()
+            toggleSlipTool()
             return true
         }
 
         if raw == "7" {
-            toggleGlassTool()
+            toggleStickyTool()
             return true
         }
 
         if raw == "8" {
-            toggleThrusterTool()
+            toggleGlassTool()
+            return true
+        }
+
+        if event.keyCode == 7 || raw == "x" {
+            cycleQuickPanelTab()
             return true
         }
 
@@ -2543,11 +2689,14 @@ final class WaveModel: ObservableObject {
         glassShardDrawStates.removeAll(keepingCapacity: true)
         thrusterParticles.removeAll(keepingCapacity: true)
         thrusterParticleDrawStates.removeAll(keepingCapacity: true)
+        stickyDripParticles.removeAll(keepingCapacity: true)
+        stickyDripParticleDrawStates.removeAll(keepingCapacity: true)
         pendingGlassShatters.removeAll(keepingCapacity: true)
         glassDamage.removeAll(keepingCapacity: true)
         glassImpactInput.removeAll(keepingCapacity: true)
         glassBreakContact.removeAll(keepingCapacity: true)
         glassGraceFrames.removeAll(keepingCapacity: true)
+        stickyLatches.removeAll(keepingCapacity: true)
         bodySplashCooldown.removeAll(keepingCapacity: true)
         wasShiftPressed = false
         destroyBox2DWorld()
@@ -3898,6 +4047,7 @@ final class WaveModel: ObservableObject {
         }
         updateGlassShards()
         updateThrusterParticles()
+        updateStickyDripParticles()
         var nextVelocities = velocities
         var nextSamples = samples
 
@@ -3939,6 +4089,7 @@ final class WaveModel: ObservableObject {
         syncWaterChunkDrawStates()
         syncGlassShardDrawStates()
         syncThrusterParticleDrawStates()
+        syncStickyDripParticleDrawStates()
         syncWeldPreviewPoints()
     }
 
@@ -4101,6 +4252,42 @@ final class WaveModel: ObservableObject {
         thrusterParticles = alive
     }
 
+    private func updateStickyDripParticles() {
+        guard !stickyDripParticles.isEmpty else {
+            if !stickyDripParticleDrawStates.isEmpty {
+                stickyDripParticleDrawStates = []
+            }
+            return
+        }
+
+        var alive: [StickyDripParticle] = []
+        alive.reserveCapacity(stickyDripParticles.count)
+
+        let gravity = gravityForce * 0.009
+        let damping: CGFloat = 0.984
+
+        for var drop in stickyDripParticles {
+            drop.age += 1
+            drop.velocity.dy += gravity
+            drop.velocity.dx *= damping
+            drop.velocity.dy *= damping
+            drop.center.x += drop.velocity.dx
+            drop.center.y += drop.velocity.dy
+            drop.elongation = min(1.0, max(0, drop.elongation + abs(drop.velocity.dy) * 0.011))
+
+            if drop.center.x < -180 || drop.center.x > viewportSize.width + 180 ||
+                drop.center.y < -180 || drop.center.y > viewportSize.height + 220 ||
+                drop.age > drop.life
+            {
+                continue
+            }
+
+            alive.append(drop)
+        }
+
+        stickyDripParticles = alive
+    }
+
     private func collideWaterChunkWithBodies(_ chunk: inout WaterChunk) {
         for body in bodies {
             let bodyRadius = boundingRadius(for: body)
@@ -4233,6 +4420,9 @@ final class WaveModel: ObservableObject {
         glassImpactInput = glassImpactInput.filter { !toRemove.contains($0.key) }
         glassBreakContact = glassBreakContact.filter { !toRemove.contains($0.key) }
         glassGraceFrames = glassGraceFrames.filter { !toRemove.contains($0.key) }
+        stickyLatches = stickyLatches.filter { key, _ in
+            !toRemove.contains(key.firstID) && !toRemove.contains(key.secondID)
+        }
 
         cleanupWeldState()
         syncBodyDrawStates()
@@ -4335,6 +4525,46 @@ final class WaveModel: ObservableObject {
         }
     }
 
+    private func emitStickyDripParticles(stepScale: CGFloat) {
+        guard viewportSize.width > 1, viewportSize.height > 1 else { return }
+        guard stickyDripParticles.count < stickyDripParticleMaxCount else { return }
+        guard !bodies.isEmpty else { return }
+
+        let normalizedStep = max(0.1, min(1.0, stepScale * CGFloat(max(1, physicsSubsteps()))))
+        let spawnChance = 0.022 * normalizedStep
+
+        for body in bodies where body.isSticky {
+            if stickyDripParticles.count >= stickyDripParticleMaxCount { break }
+            if CGFloat.random(in: 0...1) > spawnChance { continue }
+
+            guard let (surfacePoint, outwardNormal) = randomSurfacePointAndNormal(for: body) else { continue }
+            let tangentA = normalized(CGVector(dx: outwardNormal.dy, dy: -outwardNormal.dx))
+            let tangentB = CGVector(dx: -tangentA.dx, dy: -tangentA.dy)
+            let gravityDir = CGVector(dx: 0, dy: 1)
+            let downTangent = dot(tangentA, gravityDir) >= dot(tangentB, gravityDir) ? tangentA : tangentB
+            let speed = CGFloat.random(in: 0.015...0.052)
+            let velocity = CGVector(
+                dx: downTangent.dx * speed - outwardNormal.dx * 0.007 + body.velocity.dx * 0.03,
+                dy: downTangent.dy * speed - outwardNormal.dy * 0.007 + body.velocity.dy * 0.03
+            )
+            let spawn = CGPoint(
+                x: surfacePoint.x + outwardNormal.dx * 0.62,
+                y: surfacePoint.y + outwardNormal.dy * 0.62
+            )
+            stickyDripParticles.append(
+                StickyDripParticle(
+                    id: UUID(),
+                    center: spawn,
+                    velocity: velocity,
+                    radius: CGFloat.random(in: 2.8...6.1),
+                    age: 0,
+                    life: CGFloat.random(in: 56...126),
+                    elongation: CGFloat.random(in: 0.06...0.3)
+                )
+            )
+        }
+    }
+
     private func syncWaterChunkDrawStates() {
         guard !waterChunks.isEmpty else {
             if !waterChunkDrawStates.isEmpty {
@@ -4398,6 +4628,27 @@ final class WaveModel: ObservableObject {
                 radius: particle.radius,
                 opacity: min(1, max(0.02, eased)),
                 heat: particle.heat
+            )
+        }
+    }
+
+    private func syncStickyDripParticleDrawStates() {
+        guard !stickyDripParticles.isEmpty else {
+            if !stickyDripParticleDrawStates.isEmpty {
+                stickyDripParticleDrawStates = []
+            }
+            return
+        }
+
+        stickyDripParticleDrawStates = stickyDripParticles.map { drop in
+            let lifeRatio = max(0, min(1, 1 - drop.age / max(drop.life, 1)))
+            let eased = pow(lifeRatio, 1.55)
+            return StickyDripParticleDrawState(
+                id: drop.id,
+                center: drop.center,
+                radius: drop.radius,
+                opacity: min(1, max(0.08, eased)),
+                elongation: drop.elongation
             )
         }
     }
@@ -4553,6 +4804,8 @@ final class WaveModel: ObservableObject {
             box2DWasActiveLastStep = true
             updateGlassFracture(stepScale: stepScale)
             applyGlassShatters()
+            updateStickyLatches(stepScale: stepScale, groupLookup: earlyWeldTopology.lookup, usingBox2D: true)
+            emitStickyDripParticles(stepScale: stepScale)
 
             for index in bodies.indices {
                 bodies[index].angle = normalizedAngle(bodies[index].angle)
@@ -4713,6 +4966,7 @@ final class WaveModel: ObservableObject {
         }
         updateGlassFracture(stepScale: stepScale)
         applyGlassShatters()
+        updateStickyLatches(stepScale: stepScale, groupLookup: weldTopology.lookup, usingBox2D: false)
 
         resolveWeldConstraints(components: weldTopology.components)
 
@@ -4784,6 +5038,8 @@ final class WaveModel: ObservableObject {
             }
         }
 
+        emitStickyDripParticles(stepScale: stepScale)
+
     }
 
     private func resolveBodyCollisions(groupLookup: [UUID: Int], stepScale: CGFloat) {
@@ -4851,6 +5107,214 @@ final class WaveModel: ObservableObject {
             }
             bodies[index].velocity = CGVector(dx: CGFloat(v.x) / velocityScale, dy: CGFloat(v.y) / velocityScale)
             bodies[index].angularVelocity = CGFloat(w) / velocityScale
+        }
+    }
+
+    private func updateStickyLatches(stepScale: CGFloat, groupLookup: [UUID: Int], usingBox2D: Bool) {
+        guard !bodies.isEmpty else {
+            stickyLatches.removeAll(keepingCapacity: true)
+            return
+        }
+        guard bodies.contains(where: { $0.isSticky }) else {
+            stickyLatches.removeAll(keepingCapacity: true)
+            return
+        }
+
+        let dt = max(physicsStep * max(stepScale, 0.0001), 1.0 / 600.0)
+        var changedBodies = false
+        var nextLatches: [StickyLatchKey: StickyLatch] = [:]
+        nextLatches.reserveCapacity(stickyLatches.count)
+
+        for (key, var latch) in stickyLatches {
+            guard
+                let firstIndex = bodyIndex(forID: key.firstID),
+                let secondIndex = bodyIndex(forID: key.secondID),
+                bodies.indices.contains(firstIndex),
+                bodies.indices.contains(secondIndex)
+            else { continue }
+
+            var first = bodies[firstIndex]
+            var second = bodies[secondIndex]
+            if !(first.isSticky || second.isSticky) { continue }
+            if shouldSkipCollision(firstID: first.id, secondID: second.id, groupLookup: groupLookup) { continue }
+
+            let firstAnchor = worldPoint(fromLocal: latch.firstLocalAnchor, in: first)
+            let secondAnchor = worldPoint(fromLocal: latch.secondLocalAnchor, in: second)
+            let delta = CGVector(dx: secondAnchor.x - firstAnchor.x, dy: secondAnchor.y - firstAnchor.y)
+            let distance = hypot(delta.dx, delta.dy)
+            let relativeVelocity = CGVector(
+                dx: second.velocity.dx - first.velocity.dx,
+                dy: second.velocity.dy - first.velocity.dy
+            )
+            let relativeSpeed = hypot(relativeVelocity.dx, relativeVelocity.dy)
+            let manifold = bodyCollisionManifold(first, second)
+            let hasContact = manifold?.contacts.isEmpty == false
+            let deepestPenetration = manifold?.contacts.map(\.penetration).max() ?? 0
+            let characteristic = min(bodyCharacteristicSize(for: first), bodyCharacteristicSize(for: second))
+            let allowedGap = max(1.1, min(4.2, characteristic * 0.08))
+
+            // Prevent phantom pulls when contact is gone and bodies are no longer close.
+            if !hasContact, distance > allowedGap {
+                latch.timeLeft -= dt * (4.9 + distance * 0.55)
+                if latch.timeLeft > 0.02 {
+                    nextLatches[key] = latch
+                }
+                continue
+            }
+
+            let breakDistance = max(10, min(26, (bodyCharacteristicSize(for: first) + bodyCharacteristicSize(for: second)) * 0.16))
+            let breakSpeed = 6.2 + latch.strength * 1.05
+            if distance > breakDistance || relativeSpeed > breakSpeed {
+                continue
+            }
+
+            let normal = distance > 0.0001
+                ? CGVector(dx: delta.dx / distance, dy: delta.dy / distance)
+                : normalized(relativeVelocity)
+            if normal.dx == 0, normal.dy == 0 {
+                continue
+            }
+
+            let invMassFirst = 1.0 / max(bodyMass(for: first), 0.0001)
+            let invMassSecond = 1.0 / max(bodyMass(for: second), 0.0001)
+            let invMassSum = invMassFirst + invMassSecond
+            if invMassSum <= 0.000001 { continue }
+
+            let weightFirst = invMassFirst / invMassSum
+            let weightSecond = invMassSecond / invMassSum
+
+            let slack = max(0.6, min(2.2, characteristic * 0.05))
+            let stretch = max(0, distance - slack)
+            let pull = stretch * (1.25 + latch.strength * 0.75)
+            let approach = max(0, dot(relativeVelocity, normal))
+            let impulse = min(0.72, max(0, pull + approach * 0.25) * dt)
+            if impulse > 0 {
+                first.velocity.dx += normal.dx * impulse * weightFirst
+                first.velocity.dy += normal.dy * impulse * weightFirst
+                second.velocity.dx -= normal.dx * impulse * weightSecond
+                second.velocity.dy -= normal.dy * impulse * weightSecond
+            }
+
+            let positionCorrection = min(stretch, 0.65) * 0.08
+            if positionCorrection > 0.0001 {
+                first.center.x += normal.dx * positionCorrection * weightFirst
+                first.center.y += normal.dy * positionCorrection * weightFirst
+                second.center.x -= normal.dx * positionCorrection * weightSecond
+                second.center.y -= normal.dy * positionCorrection * weightSecond
+            }
+
+            // Keep anchors near current dominant contact to reduce jitter/torque drift.
+            if let contact = manifold?.contacts.max(by: { $0.penetration < $1.penetration }) {
+                let targetFirst = localPoint(fromWorld: contact.position, in: first)
+                let targetSecond = localPoint(fromWorld: contact.position, in: second)
+                let blend: CGFloat = 0.22
+                latch.firstLocalAnchor.x = latch.firstLocalAnchor.x * (1 - blend) + targetFirst.x * blend
+                latch.firstLocalAnchor.y = latch.firstLocalAnchor.y * (1 - blend) + targetFirst.y * blend
+                latch.secondLocalAnchor.x = latch.secondLocalAnchor.x * (1 - blend) + targetSecond.x * blend
+                latch.secondLocalAnchor.y = latch.secondLocalAnchor.y * (1 - blend) + targetSecond.y * blend
+            }
+
+            first.center = clampedBodyCenter(first.center, for: first)
+            second.center = clampedBodyCenter(second.center, for: second)
+            bodies[firstIndex] = first
+            bodies[secondIndex] = second
+            changedBodies = true
+
+            let contactBonus = hasContact ? max(0, min(0.22, deepestPenetration * 0.05)) : 0
+            let decayBase: CGFloat = hasContact ? 0.16 : 0.62
+            let decay = dt * (decayBase + distance * 0.05 + max(0, relativeSpeed - 0.28) * 0.11) - contactBonus * dt
+            latch.timeLeft -= decay
+            if latch.timeLeft > 0.015 {
+                nextLatches[key] = latch
+            }
+        }
+
+        stickyLatches = nextLatches
+
+        var latchCountByBody: [UUID: Int] = [:]
+        latchCountByBody.reserveCapacity(stickyLatches.count * 2)
+        for key in stickyLatches.keys {
+            latchCountByBody[key.firstID, default: 0] += 1
+            latchCountByBody[key.secondID, default: 0] += 1
+        }
+
+        creationLoop: for firstIndex in bodies.indices {
+            let first = bodies[firstIndex]
+            if !first.isSticky { continue }
+            if (latchCountByBody[first.id] ?? 0) >= 3 { continue }
+
+            for secondIndex in bodies.indices {
+                if secondIndex == firstIndex { continue }
+                let second = bodies[secondIndex]
+                if shouldSkipCollision(firstID: first.id, secondID: second.id, groupLookup: groupLookup) { continue }
+                if (latchCountByBody[second.id] ?? 0) >= 3 { continue }
+
+                let key = StickyLatchKey(first.id, second.id)
+                if stickyLatches[key] != nil { continue }
+
+                let maxDistance = boundingRadius(for: first) + boundingRadius(for: second) + 3
+                let dx = second.center.x - first.center.x
+                let dy = second.center.y - first.center.y
+                if dx * dx + dy * dy > maxDistance * maxDistance { continue }
+
+                var contactPoint: CGPoint?
+                var penetration: CGFloat = 0
+                if let manifold = bodyCollisionManifold(first, second), !manifold.contacts.isEmpty {
+                    penetration = manifold.contacts.map(\.penetration).max() ?? 0
+                    contactPoint = manifold.contacts.max(by: { $0.penetration < $1.penetration })?.position
+                    if penetration < 0.03 { continue }
+                } else if usingBox2D {
+                    // Box2D usually resolves penetration each step, so use near-AABB contact gate.
+                    let firstBounds = bodyBounds(first)
+                    let secondBounds = bodyBounds(second)
+                    let margin: CGFloat = max(0.8, min(2.0, min(firstBounds.width, secondBounds.width) * 0.05))
+                    if !firstBounds.insetBy(dx: -margin, dy: -margin).intersects(secondBounds) { continue }
+
+                    let ixMin = max(firstBounds.minX, secondBounds.minX)
+                    let ixMax = min(firstBounds.maxX, secondBounds.maxX)
+                    let iyMin = max(firstBounds.minY, secondBounds.minY)
+                    let iyMax = min(firstBounds.maxY, secondBounds.maxY)
+                    if ixMax >= ixMin, iyMax >= iyMin {
+                        contactPoint = CGPoint(x: (ixMin + ixMax) * 0.5, y: (iyMin + iyMax) * 0.5)
+                        penetration = min(ixMax - ixMin, iyMax - iyMin)
+                    } else {
+                        contactPoint = CGPoint(x: (first.center.x + second.center.x) * 0.5, y: (first.center.y + second.center.y) * 0.5)
+                        penetration = 0.01
+                    }
+                } else {
+                    continue
+                }
+
+                let relativeVelocity = CGVector(
+                    dx: second.velocity.dx - first.velocity.dx,
+                    dy: second.velocity.dy - first.velocity.dy
+                )
+                let relativeSpeed = hypot(relativeVelocity.dx, relativeVelocity.dy)
+                if relativeSpeed > 2.8 { continue }
+
+                guard let contact = contactPoint else { continue }
+                let latch = StickyLatch(
+                    firstLocalAnchor: localPoint(fromWorld: contact, in: first),
+                    secondLocalAnchor: localPoint(fromWorld: contact, in: second),
+                    timeLeft: CGFloat.random(in: 2.2...3.8),
+                    strength: min(3.8, 1.45 + penetration * 1.8)
+                )
+                stickyLatches[key] = latch
+                latchCountByBody[first.id, default: 0] += 1
+                latchCountByBody[second.id, default: 0] += 1
+                changedBodies = true
+
+                if stickyLatches.count >= 220 {
+                    break creationLoop
+                }
+                if (latchCountByBody[first.id] ?? 0) >= 3 {
+                    break
+                }
+            }
+        }
+
+        if usingBox2D, changedBodies {
+            box2DForceResyncFrames = max(box2DForceResyncFrames, 2)
         }
     }
 
@@ -5331,9 +5795,10 @@ final class WaveModel: ObservableObject {
         )
         bodyDef.angularVelocity = Float(body.angularVelocity * velocityScale)
         bodyDef.gravityScale = 1
-        bodyDef.linearDamping = body.isSticky ? 0.95 : (body.shape == .circle ? 0.0007 : 0.006)
-        bodyDef.angularDamping = body.shape == .circle ? (body.isSticky ? 0.08 : 0.00005) : (body.isSticky ? 0.82 : 0.03)
-        bodyDef.enableSleep = true
+        bodyDef.linearDamping = body.isSticky ? 1.8 : (body.shape == .circle ? 0.0007 : 0.006)
+        bodyDef.angularDamping = body.shape == .circle ? (body.isSticky ? 0.55 : 0.00005) : (body.isSticky ? 2.4 : 0.03)
+        // Circles should not get "stuck" on edge contacts because of sleeping.
+        bodyDef.enableSleep = body.shape == .circle ? false : true
         bodyDef.allowFastRotation = body.shape == .circle
 
         let bodyId = b2CreateBody(box2DWorldId, &bodyDef)
@@ -5414,20 +5879,20 @@ final class WaveModel: ObservableObject {
             )
             destroyBox2DDragJoint()
             b2Body_SetBullet(bodyId, true)
-            b2Body_SetLinearDamping(bodyId, body.isSticky ? 0.95 : (body.shape == .circle ? 0.0007 : 0.01))
+            b2Body_SetLinearDamping(bodyId, body.isSticky ? 1.8 : (body.shape == .circle ? 0.0007 : 0.01))
             b2Body_SetAngularDamping(
                 bodyId,
-                body.shape == .circle ? (body.isSticky ? 0.16 : 0.02) : (body.isSticky ? 1.2 : 0.16)
+                body.shape == .circle ? (body.isSticky ? 0.62 : 0.02) : (body.isSticky ? 2.6 : 0.16)
             )
             b2Body_SetAwake(bodyId, true)
             return
         }
 
         b2Body_SetBullet(bodyId, false)
-        b2Body_SetLinearDamping(bodyId, body.isSticky ? 0.95 : (body.shape == .circle ? 0.0007 : 0.006))
+        b2Body_SetLinearDamping(bodyId, body.isSticky ? 1.8 : (body.shape == .circle ? 0.0007 : 0.006))
         b2Body_SetAngularDamping(
             bodyId,
-            body.shape == .circle ? (body.isSticky ? 0.08 : 0.00005) : (body.isSticky ? 0.82 : 0.03)
+            body.shape == .circle ? (body.isSticky ? 0.55 : 0.00005) : (body.isSticky ? 2.4 : 0.03)
         )
 
         if body.isThruster, body.isThrusterActive {
@@ -5528,9 +5993,10 @@ final class WaveModel: ObservableObject {
     }
 
     private func box2DFriction(for body: Body) -> Float {
-        if body.isSticky { return Float(min(36.0, max(8.0, collisionFriction * 14.0))) }
+        if body.isSticky { return Float(min(140.0, max(36.0, collisionFriction * 38.0))) }
         if body.isSlippery { return Float(max(0.01, collisionFriction * 0.08)) }
-        if body.shape == .circle { return Float(max(0.02, collisionFriction * 0.1)) }
+        // Keep circles noticeably more roll-prone on flat and edge contacts.
+        if body.shape == .circle { return Float(max(0.005, collisionFriction * 0.035)) }
         return Float(max(0.04, collisionFriction))
     }
 
@@ -5541,8 +6007,8 @@ final class WaveModel: ObservableObject {
 
     private func box2DRollingResistance(for body: Body) -> Float {
         if body.isSlippery { return 0.0 }
-        if body.shape == .circle { return body.isSticky ? 3.2 : 0.00005 }
-        return body.isSticky ? 2.6 : 0.16
+        if body.shape == .circle { return body.isSticky ? 8.8 : 0.0 }
+        return body.isSticky ? 7.2 : 0.16
     }
 
     private func collisionLocalVertices(for body: Body) -> [CGPoint]? {
@@ -5979,7 +6445,7 @@ final class WaveModel: ObservableObject {
         let stickyActive = first.isSticky || second.isSticky
         let friction: CGFloat
         if stickyActive {
-            friction = min(6.2, baseFriction * 3.8)
+            friction = min(7.0, baseFriction * 4.8)
         } else if slipperyActive {
             friction = baseFriction * 0.08
         } else if glassPair {
@@ -5990,11 +6456,11 @@ final class WaveModel: ObservableObject {
             friction = baseFriction * 0.75
         }
         let frictionScale: CGFloat = 1.0
-        let staticFriction = stickyActive ? min(7.2, friction * 1.8) : min(1.8, friction * 1.15)
-        let dynamicFriction = stickyActive ? min(6.0, friction * 1.3) : min(1.2, friction * 0.85)
+        let staticFriction = stickyActive ? min(8.8, friction * 1.9) : min(1.8, friction * 1.15)
+        let dynamicFriction = stickyActive ? min(7.2, friction * 1.45) : min(1.2, friction * 0.85)
         let adjustedStatic = staticFriction * frictionScale
         let adjustedDynamic = dynamicFriction * frictionScale
-        let stickyAdhesion: CGFloat = stickyActive ? 1.35 : 0
+        let stickyAdhesion: CGFloat = stickyActive ? 4.6 : 0
 
         let angularTransfer: CGFloat = collisionAngularTransfer * (hasCircle ? 1.0 : 0.6)
         for contact in manifold.contacts.prefix(2) {
@@ -6072,11 +6538,14 @@ final class WaveModel: ObservableObject {
                 second.angularVelocity += cross(rSecond, impulse) * invInertiaSecond * angularTransfer
             }
 
-            if stickyAdhesion > 0, velocityAlongNormal > -0.05, contact.penetration < 2.4 {
-                let adhesiveMax = stickyAdhesion * max(0.8, effectiveMass) * (1 + contact.penetration * 0.4)
-                let adhesiveDrive = max(0, velocityAlongNormal + 0.05)
+            let stickyRelativeSpeed = hypot(relativeVelocity.dx, relativeVelocity.dy)
+            let stickyBreakSpeed: CGFloat = 3.2
+            if stickyAdhesion > 0, stickyRelativeSpeed < stickyBreakSpeed, velocityAlongNormal > -0.24, contact.penetration < 3.2 {
+                let stickFactor = pow(max(0, 1 - stickyRelativeSpeed / stickyBreakSpeed), 2)
+                let adhesiveMax = stickyAdhesion * max(0.8, effectiveMass) * (1.45 + contact.penetration * 0.56) * stickFactor
+                let adhesiveDrive = max(0, velocityAlongNormal + 0.18)
                 let adhesiveMag = min(adhesiveMax, adhesiveDrive / max(denominator, 0.0001))
-                if adhesiveMag > 0 {
+                if adhesiveMag > 0.0001 {
                     let adhesiveImpulse = CGVector(
                         dx: -manifold.normal.dx * adhesiveMag,
                         dy: -manifold.normal.dy * adhesiveMag
@@ -6088,6 +6557,21 @@ final class WaveModel: ObservableObject {
                     if invMassSecond > 0 {
                         second.velocity.dx += adhesiveImpulse.dx * invMassSecond
                         second.velocity.dy += adhesiveImpulse.dy * invMassSecond
+                    }
+                }
+
+                // Softly align tangential motion while in sticky contact.
+                let blend = 0.34 * stickFactor
+                if blend > 0.0001 {
+                    let avgVX = (first.velocity.dx + second.velocity.dx) * 0.5
+                    let avgVY = (first.velocity.dy + second.velocity.dy) * 0.5
+                    if invMassFirst > 0 {
+                        first.velocity.dx = first.velocity.dx * (1 - blend) + avgVX * blend
+                        first.velocity.dy = first.velocity.dy * (1 - blend) + avgVY * blend
+                    }
+                    if invMassSecond > 0 {
+                        second.velocity.dx = second.velocity.dx * (1 - blend) + avgVX * blend
+                        second.velocity.dy = second.velocity.dy * (1 - blend) + avgVY * blend
                     }
                 }
             }
@@ -6600,7 +7084,7 @@ final class WaveModel: ObservableObject {
         let baseFriction = min(max(landFriction, 0), 2.0)
         var frictionCoefficient: CGFloat
         if body.isSticky {
-            frictionCoefficient = min(7.0, baseFriction * 4.4)
+            frictionCoefficient = min(10.0, baseFriction * 6.0)
         } else if body.isSlippery {
             frictionCoefficient = baseFriction * 0.08
         } else {
@@ -6617,7 +7101,7 @@ final class WaveModel: ObservableObject {
                 let gravitySupport = gravityForce * max(0, fallAccelerationScale)
                 let supportImpulse = max(normalImpulse, gravitySupport * mass)
                 let tangentSpeed = abs(contactVelocity.dx)
-                let dynamicCoefficient = body.isSticky ? frictionCoefficient * 0.9 : frictionCoefficient * 0.8
+                let dynamicCoefficient = body.isSticky ? frictionCoefficient * 0.95 : frictionCoefficient * 0.8
                 let coefficient = tangentSpeed > 0.35 ? dynamicCoefficient : frictionCoefficient
                 let frictionLimit = max(0.001, supportImpulse * coefficient * supportFactor)
                 tangentImpulse = min(max(tangentImpulse, -frictionLimit), frictionLimit)
@@ -8572,6 +9056,72 @@ final class WaveModel: ObservableObject {
             dx: vector.dx * cosA - vector.dy * sinA,
             dy: vector.dx * sinA + vector.dy * cosA
         )
+    }
+
+    private func normalized(_ vector: CGVector) -> CGVector {
+        let length = sqrt(vector.dx * vector.dx + vector.dy * vector.dy)
+        guard length > 0.000001 else { return .zero }
+        return CGVector(dx: vector.dx / length, dy: vector.dy / length)
+    }
+
+    private func randomSurfacePointAndNormal(for body: Body) -> (CGPoint, CGVector)? {
+        switch body.shape {
+        case .cube:
+            let half = squareSize * 0.5
+            let t = CGFloat.random(in: -half...half)
+            let side = Int.random(in: 0..<4)
+            let localPoint: CGPoint
+            let localNormal: CGVector
+            switch side {
+            case 0:
+                localPoint = CGPoint(x: t, y: -half)
+                localNormal = CGVector(dx: 0, dy: -1)
+            case 1:
+                localPoint = CGPoint(x: half, y: t)
+                localNormal = CGVector(dx: 1, dy: 0)
+            case 2:
+                localPoint = CGPoint(x: t, y: half)
+                localNormal = CGVector(dx: 0, dy: 1)
+            default:
+                localPoint = CGPoint(x: -half, y: t)
+                localNormal = CGVector(dx: -1, dy: 0)
+            }
+            return (
+                worldPoint(fromLocal: localPoint, in: body),
+                normalized(rotateVector(localNormal, by: body.angle))
+            )
+        case .circle:
+            let angle = CGFloat.random(in: 0..<(CGFloat.pi * 2))
+            let localNormal = CGVector(dx: cos(angle), dy: sin(angle))
+            let localPoint = CGPoint(x: localNormal.dx * circleRadius, y: localNormal.dy * circleRadius)
+            return (
+                worldPoint(fromLocal: localPoint, in: body),
+                normalized(rotateVector(localNormal, by: body.angle))
+            )
+        case .polygon:
+            guard let vertices = bodyLocalVertices(for: body, forCollision: false), vertices.count > 2 else {
+                return nil
+            }
+            let index = Int.random(in: 0..<vertices.count)
+            let next = (index + 1) % vertices.count
+            let a = vertices[index]
+            let b = vertices[next]
+            let t = CGFloat.random(in: 0...1)
+            let localPoint = CGPoint(
+                x: a.x + (b.x - a.x) * t,
+                y: a.y + (b.y - a.y) * t
+            )
+            let edge = CGVector(dx: b.x - a.x, dy: b.y - a.y)
+            let n1 = CGVector(dx: edge.dy, dy: -edge.dx)
+            let n2 = CGVector(dx: -edge.dy, dy: edge.dx)
+            let centroid = polygonCentroid(vertices)
+            let toOutside = CGVector(dx: localPoint.x - centroid.x, dy: localPoint.y - centroid.y)
+            let localNormal = dot(n1, toOutside) >= dot(n2, toOutside) ? n1 : n2
+            return (
+                worldPoint(fromLocal: localPoint, in: body),
+                normalized(rotateVector(localNormal, by: body.angle))
+            )
+        }
     }
 
     private func normalizedAngle(_ angle: CGFloat) -> CGFloat {
